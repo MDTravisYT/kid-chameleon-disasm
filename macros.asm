@@ -248,3 +248,10 @@ _tst	macro
 		!tst.ATTRIBUTE ALLARGS
 	endm
     endif
+
+; define the even pseudo-instruction
+even macro
+	if (*)&1
+		dc.b 0 ;ds.b 1 
+	endif
+    endm
