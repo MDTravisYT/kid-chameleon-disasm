@@ -49578,20 +49578,20 @@ _gemsdmastart:
 ; ---------------------------------------------------------------------------
 	move.w	#$100,($A11100).l
 
-loc_E136C:
+dslp:
 	btst	#0,($A11100).l
-	bne.s	loc_E136C
+	bne.s	dslp
 	move.b	#1,($A01A20).l
 	move.b	($A01A21).l,d0
 	move.w	#0,($A11100).l
 	tst.b	d0
-	beq.s	return_E1396
+	beq.s	dsok
 	moveq	#$44,d0
 
-loc_E1392:
-	dbf	d0,loc_E1392
+dswait:
+	dbf	d0,dswait
 
-return_E1396:
+dsok:
 	rts
 
 ; =============== S U B	R O U T	I N E =======================================
