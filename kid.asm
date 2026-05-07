@@ -49506,9 +49506,7 @@ sub_E1338:
 ; Attributes: thunk
 
 sub_E133C:
-	jmp	loc_E1576(pc)
-; End of function sub_E133C
-
+	jmp	_gemsstopall(pc)
 ; ---------------------------------------------------------------------------
 	jmp	_gemsprogchange(pc)
 ; ---------------------------------------------------------------------------
@@ -49526,7 +49524,50 @@ sub_E133C:
 ; ---------------------------------------------------------------------------
 	jmp	_gemsmute(pc)
 
-; =============== S U B	R O U T	I N E =======================================
+PlaySound:	;	Not native to GEMS
+	move.l	a0,-(sp)
+	move.l	d0,-(sp)
+	bsr.w	_gemsstartsong
+	move.l	(sp)+,d0
+	move.l	(sp)+,a0
+	rts
+; End of function PlaySound
+
+; only difference to PlaySound is that we move $12 instead of $10 to d0
+; before calling stdcmdwrite
+;sub_E1532
+PlaySound2:	;	Not native to GEMS
+	move.l	a0,-(sp)
+	move.l	d0,-(sp)
+	bsr.w	_gemsstopsong
+	move.l	(sp)+,d0
+	move.l	(sp)+,a0
+	rts
+; End of function PlaySound2
+
+sub_E1546:	;	Not native to GEMS
+	move.l	a0,-(sp)
+	move.l	d0,-(sp)
+	bsr.w	_gemssettempo
+	move.l	(sp)+,d0
+	move.l	(sp)+,a0
+	rts
+; End of function sub_E1546
+
+loc_E13B0:	;	Not native to GEMS
+	move.w	4(a6),d0
+	btst	#1,d0
+	bne.s	loc_E13B0
+	rts
+
+; ---------------------------------------------------------------------------
+;       The real
+; #### #### ##   # ####
+; ##   ##   ### ## ##  
+; ## # ###  ######  ## 
+; ## # ##   ## # #   ##
+; #### #### ##   # ####
+; ---------------------------------------------------------------------------
 
 ; Attributes: thunk
 
@@ -49566,12 +49607,6 @@ _gemsdmaend:
 	move.b	#0,($A01A20).l
 	jsr	(_gemsreleasez80).l
 
-loc_E13B0:
-	move.w	4(a6),d0
-	btst	#1,d0
-	bne.s	loc_E13B0
-	rts
-
 ; =============== S U B	R O U T	I N E =======================================
 
 _gemsholdz80:
@@ -49607,14 +49642,14 @@ _gemsloadz80:
 	subq.w	#1,d0
 	lea	($A00000).l,a1
 
-loc_E1400:
+lzlp1:
 	move.b	(a0)+,(a1)+
-	dbf	d0,loc_E1400
+	dbf	d0,lzlp1
 
-loc_E1406:
+lzlp2:
 	move.b	#0,(a1)+
 	cmpi.l	#$A02000,a1
-	bne.s	loc_E1406
+	bne.s	lzlp2
 	move.l	(sp)+,a1
 	rts
 ; End of function _gemsloadz80
@@ -49627,9 +49662,9 @@ _gemsstartz80:
 	move.w	#0,($A11200).l
 	move.l	#$F,d0
 
-loc_E1424:
+szlp:
 	subq.l	#1,d0
-	bne.s	loc_E1424
+	bne.s	szlp
 	move.w	#0,($A11100).l
 	move.w	#$100,($A11200).l
 	rts
@@ -49650,9 +49685,9 @@ stdsetup:
 	or	#$700,sr
 	move.w	#$100,($A11100).l
 
-loc_E1460:
+sslp:
 	btst	#0,($A11100).l
-	bne.s	loc_E1460
+	bne.s	sslp
 	move.b	(a0),d1
 	ext.w	d1
 	rts
@@ -49750,19 +49785,6 @@ _gemsinit:
 ; =============== S U B	R O U T	I N E =======================================
 
 
-PlaySound:
-	move.l	a0,-(sp)
-	move.l	d0,-(sp)
-	bsr.s	_gemsstartsong
-	move.l	(sp)+,d0
-	move.l	(sp)+,a0
-	rts
-; End of function PlaySound
-
-
-; =============== S U B	R O U T	I N E =======================================
-
-
 _gemsstartsong:
 	jsr	stdsetup(pc)
 	moveq	#$10,d0
@@ -49777,40 +49799,12 @@ com1arg:
 
 ; =============== S U B	R O U T	I N E =======================================
 
-; only difference to PlaySound is that we move $12 instead of $10 to d0
-; before calling stdcmdwrite
-;sub_E1532
-PlaySound2:
-	move.l	a0,-(sp)
-	move.l	d0,-(sp)
-	bsr.s	_gemsstopsong
-	move.l	(sp)+,d0
-	move.l	(sp)+,a0
-	rts
-; End of function PlaySound2
-
-
-; =============== S U B	R O U T	I N E =======================================
-
 
 _gemsstopsong:
 	jsr	stdsetup(pc)
 	moveq	#$12,d0
 	bra.s	com1arg
 ; End of function _gemsstopsong
-
-
-; =============== S U B	R O U T	I N E =======================================
-
-
-sub_E1546:
-	move.l	a0,-(sp)
-	move.l	d0,-(sp)
-	bsr.s	_gemssettempo
-	move.l	(sp)+,d0
-	move.l	(sp)+,a0
-	rts
-; End of function sub_E1546
 
 
 ; =============== S U B	R O U T	I N E =======================================
@@ -49846,7 +49840,7 @@ _gemsresumeall:
 
 ; ---------------------------------------------------------------------------
 
-loc_E1576:
+_gemsstopall:
 	jsr	stdsetup(pc)
 	jmp	stdcleanup(pc)
 ; ---------------------------------------------------------------------------
