@@ -787,7 +787,7 @@ loc_62A:
 	move.w	d0,(a6)
 	move.w	d0,(a6)
 	move.w	#$FFFF,($FFFFFC32).w
-	jsr	(j_StopMusic).l
+	jsr	(j__gemsinit).l
 	move.b	#2,($FFFFFC82).w
 
 loc_65C:
@@ -1027,7 +1027,7 @@ loc_8FE:
 sub_914:
 	addq.b	#1,($FFFFF805).w
 	move	#$2700,sr
-	jsr	(j_Stop_z80).l
+	jsr	(j__gemsholdz80).l
 	rts
 ; End of function sub_914
 
@@ -1040,7 +1040,7 @@ sub_924:
 	bgt.s	return_938
 	clr.b	($FFFFF805).w
 	move	#$2500,sr
-	jsr	(j_Start_z80).l
+	jsr	(j__gemsreleasez80).l
 
 return_938:
 	rts
@@ -1094,9 +1094,9 @@ loc_964:
 Palette_to_VRAM:
 	tst.b	(PaletteToDMA_Flag).w
 	bne.s	+
-	jsr	(j_Stop_z80).l
+	jsr	(j__gemsholdz80).l
 	dma68kToVDP	Palette_Buffer,$0000,$80,CRAM
-	jsr	(j_Start_z80).l
+	jsr	(j__gemsreleasez80).l
 +
 	rts
 
@@ -1240,10 +1240,10 @@ Transfer_SpriteAndKidToVRAM:
 	sf	-5(a4)
 
 loc_A70:
-	jsr	(j_Stop_z80).l
+	jsr	(j__gemsholdz80).l
 	dma68kToVDP	Sprite_Table,$1000,$280,VRAM
-	jsr	(j_Start_z80).l
-	jsr	(j_Stop_z80).l
+	jsr	(j__gemsreleasez80).l
+	jsr	(j__gemsholdz80).l
 	tst.b	($FFFFFB49).w
 	bne.w	loc_B36
 	move.l	($FFFFF838).w,a0
@@ -1301,7 +1301,7 @@ loc_B24:
 ; ---------------------------------------------------------------------------
 
 loc_B36:
-	jsr	(j_Start_z80).l
+	jsr	(j__gemsreleasez80).l
 	jsr	(j_sub_B52).w
 	rts
 ; ---------------------------------------------------------------------------
@@ -1380,7 +1380,7 @@ loc_BB6:
 loc_C0A:
 	move.w	#$82A,($FFFFFBCC).w
 	clr.w	(Current_LevelID).w
-	jsr	(j_StopMusic).l
+	jsr	(j__gemsinit).l
 	jmp	(j_loc_6E2).w
 ; ---------------------------------------------------------------------------
 	jmp	loc_6E2(pc)
@@ -5772,7 +5772,7 @@ sub_5D4A:
 	addi.l	#off_7B0AC,a0
 	move.l	(a0),d1
 	addq.l	#2,d1		; d1 = DMA source address
-	jsr	(j_Stop_z80).l
+	jsr	(j__gemsholdz80).l
 	move.l	#(($9300|((ANIART_DIAMOND_SIZE&$1FE)>>1))<<16)|($9400|(ANIART_DIAMOND_SIZE>>9)),4(a6)	; DMA length
 	move.l	d1,d0
 	lsr.l	#1,d0
@@ -5792,7 +5792,7 @@ loc_5D6C:
 	move.l	#vdpComm($DD40,VRAM,DMA),($FFFFF800).w
 	move.w	($FFFFF800).w,4(a6)
 	move.w	($FFFFF802).w,4(a6)
-	jsr	(j_Start_z80).l
+	jsr	(j__gemsreleasez80).l
 	rts
 ; End of function sub_5D4A
 
@@ -5802,7 +5802,7 @@ loc_5D6C:
 
 sub_5DA6:
 	move.l	a1,d1		; d1 = DMA source address
-	jsr	(j_Stop_z80).l
+	jsr	(j__gemsholdz80).l
 	move.l	#(($9300|((ANIART_FLAG_SIZE&$1FE)>>1))<<16)|($9400|(ANIART_FLAG_SIZE>>9)),4(a6)	; DMA length
 	move.l	d1,d0
 	lsr.l	#1,d0
@@ -5820,7 +5820,7 @@ sub_5DA6:
 	move.l	#vdpComm($D340,VRAM,DMA),($FFFFF800).w
 	move.w	($FFFFF800).w,4(a6)
 	move.w	($FFFFF802).w,4(a6)
-	jsr	(j_Start_z80).l
+	jsr	(j__gemsreleasez80).l
 	rts
 ; End of function sub_5DA6
 
@@ -6609,9 +6609,9 @@ loc_68AC:
 loc_68C0:
 	addq.w	#8,a0
 	dbf	d3,loc_68AC
-	jsr	(j_Stop_z80).l
+	jsr	(j__gemsholdz80).l
 	dma68kToVDP	Sprite_Table,$1000,$280,VRAM
-	jsr	(j_Start_z80).l
+	jsr	(j__gemsreleasez80).l
 
 	; Load pause menu art into VRAM
 	lea	ArtUnc_PauseMenu(pc),a0
@@ -15639,7 +15639,7 @@ return_C046:
 
 
 CharacterCollision_TouchFlagpole:
-	jsr	(j_StopMusic).l
+	jsr	(j__gemsinit).l
 	st	($FFFFFB4B).w
 	lea	(Addr_FirstObjectSlot).w,a0
 
@@ -16918,7 +16918,7 @@ loc_D7F4:
 ; ---------------------------------------------------------------------------
 
 End_Credits:
-	jsr	(j_StopMusic).l
+	jsr	(j__gemsinit).l
 	move.w	#$28,-(sp)
 	jsr	(j_Hibernate_Object).w
 	move.w	#bgm_Ending,d0
@@ -23614,7 +23614,7 @@ loc_119D8:
 	st	($FFFFFC36).w
 	move.w	#$82A,($FFFFFBCC).w
 	clr.w	(Current_LevelID).w
-	jsr	(j_StopMusic).l
+	jsr	(j__gemsinit).l
 	jmp	(j_loc_6E2).w
 
 ; =============== S U B	R O U T	I N E =======================================
@@ -23626,7 +23626,7 @@ Load_InGame:
 	jsr	(j_sub_28FC).w
 	jsr	(j_sub_44B0).w
 	jsr	(j_Init_Timer_and_Bonus_Flags).w
-	jsr	(j_StopMusic).l
+	jsr	(j__gemsinit).l
 	move.l	#$F,-(sp)
 	jsr	(sub_E133C).l
 	move.l	(sp)+,d0
@@ -24218,7 +24218,7 @@ loc_1202A:
 	move.l	#LnkTo_unk_9784A,a0
 	move.l	(a0),d2
 	addq.l	#2,d2		; d2 = DMA source address
-	jsr	(j_Stop_z80).l
+	jsr	(j__gemsholdz80).l
 	lsr.l	#1,d2
 	move.l	#(($9300|((ANIART_SHORE_SIZE&$1FE)>>1))<<16)|($9400|(ANIART_SHORE_SIZE>>9)),4(a6)	; DMA length
 	move.w	#$9500,d4
@@ -24235,7 +24235,7 @@ loc_1202A:
 	move.l	#vdpComm($F600,VRAM,DMA),($FFFFF800).w
 	move.w	($FFFFF800).w,4(a6)
 	move.w	($FFFFF802).w,4(a6)
-	jsr	(j_Start_z80).l
+	jsr	(j__gemsreleasez80).l
 	moveq	#1,d3
 	moveq	#1,d2
 	moveq	#1,d1
@@ -24256,7 +24256,7 @@ loc_12098:
 	move.l	(a4,d4.w),a4
 	move.l	(a4),d5
 	addq.l	#2,d5		; d5 = DMA source address
-	jsr	(j_Stop_z80).l
+	jsr	(j__gemsholdz80).l
 	lsr.l	#1,d5
 	move.l	#$93609400,4(a6)	; DMA length: $C0
 	move.w	#$9500,d4
@@ -24273,7 +24273,7 @@ loc_12098:
 	move.l	#vdpComm($F600,VRAM,DMA),($FFFFF800).w
 	move.w	($FFFFF800).w,4(a6)
 	move.w	($FFFFF802).w,4(a6)
-	jsr	(j_Start_z80).l
+	jsr	(j__gemsreleasez80).l
 	move.w	#9,$44(a5)
 
 loc_12110:
@@ -24288,7 +24288,7 @@ loc_12110:
 	move.l	(a4,d4.w),a4
 	move.l	(a4),d5
 	addi.l	#$C2,d5		; d5 = DMA source address
-	jsr	(j_Stop_z80).l
+	jsr	(j__gemsholdz80).l
 	lsr.l	#1,d5
 	move.l	#$93509400,4(a6)	; DMA length: $A0
 	move.w	#$9500,d4
@@ -24305,7 +24305,7 @@ loc_12110:
 	move.l	#vdpComm($F6C0,VRAM,DMA),($FFFFF800).w
 	move.w	($FFFFF800).w,4(a6)
 	move.w	($FFFFF802).w,4(a6)
-	jsr	(j_Start_z80).l
+	jsr	(j__gemsreleasez80).l
 	move.w	#9,$46(a5)
 
 loc_12188:
@@ -24327,7 +24327,7 @@ loc_121A6:
 	move.l	(a4,d4.w),a4
 	move.l	(a4),d5
 	addi.l	#$162,d5		; d5 = DMA source address
-	jsr	(j_Stop_z80).l
+	jsr	(j__gemsholdz80).l
 	lsr.l	#1,d5
 	move.l	#$93C09400,4(a6)	; DMA length: $180
 	move.w	#$9500,d4
@@ -24344,7 +24344,7 @@ loc_121A6:
 	move.l	#vdpComm($F760,VRAM,DMA),($FFFFF800).w
 	move.w	($FFFFF800).w,4(a6)
 	move.w	($FFFFF802).w,4(a6)
-	jsr	(j_Start_z80).l
+	jsr	(j__gemsreleasez80).l
 	bra.w	loc_12098
 ; ---------------------------------------------------------------------------
 off_1220E:	dc.l LnkTo_unk_9784A
@@ -25442,7 +25442,7 @@ ArtComp_12D70:  binclude    "scenes/artcomp/Some_geometric_patterns.bin"
 ; ---------------------------------------------------------------------------
 ; 12DD0
 Load_SegaScreen:
-	jsr	(j_StopMusic).l
+	jsr	(j__gemsinit).l
 	move	#$2700,sr
 	move.w	#$8134,4(a6)
 	move.w	#$1780,d0
@@ -29065,7 +29065,7 @@ loc_1AE2E:
 ; ---------------------------------------------------------------------------
 
 Load_IntroSequence1:
-	jsr	(j_StopMusic).l
+	jsr	(j__gemsinit).l
 	move.w	#bgm_Ice,d0
 	jsr	(j_PlaySound).l
 	bsr.w	sub_1B850
@@ -30458,7 +30458,7 @@ Title_InputLoop:
 	move.w	#8,(Game_Mode).w
 	tst.w	d1
 	sne	(Two_player_flag).w
-	jsr	(j_StopMusic).l
+	jsr	(j__gemsinit).l
 
 loc_1BBD6:
 	st	($FFFFFBCE).w
@@ -31132,7 +31132,7 @@ loc_1C250:
 loc_1C264:
 	move.w	#$2C,(Game_Mode).w
 	st	($FFFFFBCE).w
-	jsr	(j_StopMusic).l
+	jsr	(j__gemsinit).l
 	jmp	(j_loc_6E2).w
 ; End of function sub_1C246
 
@@ -31567,7 +31567,7 @@ Pal_1C97C:  binclude	"scenes/palette/options.bin"
 ; ---------------------------------------------------------------------------
 
 Load_OptionMenu:
-	jsr	(j_StopMusic).l
+	jsr	(j__gemsinit).l
 	move.w	#bgm_City,d0
 	jsr	(j_PlaySound).l
 	move.w	#$1780,d0
@@ -31706,7 +31706,7 @@ Option_Exit:
 				; OptionScreen_Input+50j ...
 	move.w	#$2C,(Game_Mode).w
 	st	($FFFFFBCE).w
-	jsr	(j_StopMusic).l
+	jsr	(j__gemsinit).l
 	jmp	(j_loc_6E2).w
 ; END OF FUNCTION CHUNK	FOR OptionScreen_Input
 
@@ -33685,9 +33685,9 @@ loc_300BA:
 
 loc_300D2:
 	move.w	d0,(a6)
-	jsr	(j_Stop_z80).l
+	jsr	(j__gemsholdz80).l
 	dma68kToVDP	Horiz_Scroll_Buffer,$1400,$380,VRAM
-	jsr	(j_Start_z80).l
+	jsr	(j__gemsreleasez80).l
 	jsr	(j_sub_924).w
 	rts
 ; ---------------------------------------------------------------------------
@@ -49425,34 +49425,34 @@ unk_E11D6:  sprite_frame_vram   $018, $08, $00, $10, $1E
 ; =============== S U B	R O U T	I N E =======================================
 
 ;E1304
-j_Stop_z80:
-	jmp	BranchTo_Stop_z80(pc)
+j__gemsholdz80:
+	jmp	_gemsdmastart(pc)
 
 ; ---------------------------------------------------------------------------
 
 ;E1308
-j_Start_z80:
-	jmp	BranchTo_Start_z80(pc)
+j__gemsreleasez80:
+	jmp	_gemsdmaend(pc)
 ; ---------------------------------------------------------------------------
-	jmp	Stop_z80(pc)
+	jmp	_gemsholdz80(pc)
 ; ---------------------------------------------------------------------------
-	jmp	Start_z80(pc)
+	jmp	_gemsreleasez80(pc)
 ; ---------------------------------------------------------------------------
-	jmp	sub_E13DA(pc)
+	jmp	_gemsloadz80(pc)
 ; ---------------------------------------------------------------------------
-	jmp	sub_E1416(pc)
+	jmp	_gemsstartz80(pc)
 ; ---------------------------------------------------------------------------
-	jmp	sub_E149C(pc)
+	jmp	_gemsputcbyte(pc)
 ; ---------------------------------------------------------------------------
-	jmp	sub_E14AC(pc)
+	jmp	_gemsputptr(pc)
 
 ; =============== S U B	R O U T	I N E =======================================
 
 ; Attributes: thunk
 
-j_StopMusic:
-	jmp	StopMusic(pc)
-; End of function j_StopMusic
+j__gemsinit:
+	jmp	_gemsinit(pc)
+; End of function j__gemsinit
 
 
 ; =============== S U B	R O U T	I N E =======================================
@@ -49488,7 +49488,7 @@ sub_E1330:
 ; Attributes: thunk
 
 sub_E1334:
-	jmp	sub_E155A(pc)
+	jmp	_gemspauseall(pc)
 ; End of function sub_E1334
 
 
@@ -49497,7 +49497,7 @@ sub_E1334:
 ; Attributes: thunk
 
 sub_E1338:
-	jmp	sub_E1568(pc)
+	jmp	_gemsresumeall(pc)
 ; End of function sub_E1338
 
 
@@ -49510,29 +49510,29 @@ sub_E133C:
 ; End of function sub_E133C
 
 ; ---------------------------------------------------------------------------
-	jmp	loc_E157E(pc)
+	jmp	_gemsprogchange(pc)
 ; ---------------------------------------------------------------------------
-	jmp	loc_E159C(pc)
+	jmp	_gemsnoteon(pc)
 ; ---------------------------------------------------------------------------
-	jmp	loc_E15A4(pc)
+	jmp	_gemsnoteoff(pc)
 ; ---------------------------------------------------------------------------
-	jmp	loc_E15AC(pc)
+	jmp	_gemspitchbend(pc)
 ; ---------------------------------------------------------------------------
-	jmp	loc_E15D0(pc)
+	jmp	_gemssetenv(pc)
 ; ---------------------------------------------------------------------------
-	jmp	loc_E15D8(pc)
+	jmp	_gemsretrigenv(pc)
 ; ---------------------------------------------------------------------------
-	jmp	loc_E15E0(pc)
+	jmp	_gemssustain(pc)
 ; ---------------------------------------------------------------------------
-	jmp	loc_E15E8(pc)
+	jmp	_gemsmute(pc)
 
 ; =============== S U B	R O U T	I N E =======================================
 
 ; Attributes: thunk
 
-BranchTo_Stop_z80:
-	bra.w	Stop_z80
-; End of function BranchTo_Stop_z80
+_gemsdmastart:
+	bra.w	_gemsholdz80
+; End of function _gemsdmastart
 
 ; ---------------------------------------------------------------------------
 	move.w	#$100,($A11100).l
@@ -49557,14 +49557,14 @@ return_E1396:
 
 ; Attributes: thunk
 
-BranchTo_Start_z80:
-	bra.w	Start_z80
-; End of function BranchTo_Start_z80
+_gemsdmaend:
+	bra.w	_gemsreleasez80
+; End of function _gemsdmaend
 
 ; ---------------------------------------------------------------------------
-	jsr	(Stop_z80).l
+	jsr	(_gemsholdz80).l
 	move.b	#0,($A01A20).l
-	jsr	(Start_z80).l
+	jsr	(_gemsreleasez80).l
 
 loc_E13B0:
 	move.w	4(a6),d0
@@ -49574,34 +49574,34 @@ loc_E13B0:
 
 ; =============== S U B	R O U T	I N E =======================================
 
-Stop_z80:
+_gemsholdz80:
 	move.w	#$100,($A11100).l
 -
 	btst	#0,($A11100).l
 	bne.s	-
 	rts
-; End of function Stop_z80
+; End of function _gemsholdz80
 
 
 ; =============== S U B	R O U T	I N E =======================================
 
-Start_z80:
+_gemsreleasez80:
 
 	move.w	#0,($A11100).l
 	rts
-; End of function Start_z80
+; End of function _gemsreleasez80
 
 
 ; =============== S U B	R O U T	I N E =======================================
 
 
 ; Write Driver
-sub_E13DA:
+_gemsloadz80:
 	move.l	a1,-(sp)
 	move.w	#$100,($A11200).l
-	jsr	Stop_z80(pc)	; stop Z80
-	lea	(GEMS_Sounddriver).l,a0
-	lea	(GEMS_Sounddriver_End).l,a1
+	jsr	_gemsholdz80(pc)	; stop Z80
+	lea	(_Z80CODE).l,a0
+	lea	(_Z80END).l,a1
 	move.l	a1,d0
 	sub.l	a0,d0
 	subq.w	#1,d0
@@ -49617,13 +49617,13 @@ loc_E1406:
 	bne.s	loc_E1406
 	move.l	(sp)+,a1
 	rts
-; End of function sub_E13DA
+; End of function _gemsloadz80
 
 
 ; =============== S U B	R O U T	I N E =======================================
 
 
-sub_E1416:
+_gemsstartz80:
 	move.w	#0,($A11200).l
 	move.l	#$F,d0
 
@@ -49633,13 +49633,13 @@ loc_E1424:
 	move.w	#0,($A11100).l
 	move.w	#$100,($A11200).l
 	rts
-; End of function sub_E1416
+; End of function _gemsstartz80
 
 
 ; =============== S U B	R O U T	I N E =======================================
 
 
-sub_E143A:
+stdsetup:
 	move.l	(sp)+,a0
 	link	a6,#0
 	movem.l	d1/a1,-(sp)
@@ -49656,95 +49656,95 @@ loc_E1460:
 	move.b	(a0),d1
 	ext.w	d1
 	rts
-; End of function sub_E143A
+; End of function stdsetup
 
 ; ---------------------------------------------------------------------------
-; START	OF FUNCTION CHUNK FOR sub_E149C
+; START	OF FUNCTION CHUNK FOR _gemsputcbyte
 
-loc_E1470:
+stdcleanup:
 	move.w	#0,($A11100).l
 	move	(sp)+,sr
 	movem.l	(sp)+,d1/a1
 	unlk	a6
 	rts
-; END OF FUNCTION CHUNK	FOR sub_E149C
+; END OF FUNCTION CHUNK	FOR _gemsputcbyte
 
 ; =============== S U B	R O U T	I N E =======================================
 
 
-sub_E1482:
+stdcmdwrite:
 	move.b	#$FF,(a1,d1.w)
 	addq.b	#1,d1
 	andi.b	#$3F,d1
-; End of function sub_E1482
+; End of function stdcmdwrite
 
 
 ; =============== S U B	R O U T	I N E =======================================
 
 
-sub_E148E:
+stdwrite:
 	move.b	d0,(a1,d1.w)
 	addq.b	#1,d1
 	andi.b	#$3F,d1
 	move.b	d1,(a0)
 	rts
-; End of function sub_E148E
+; End of function stdwrite
 
 
 ; =============== S U B	R O U T	I N E =======================================
 
 
-sub_E149C:
+_gemsputcbyte:
 
 ; FUNCTION CHUNK AT 000E1470 SIZE 00000012 BYTES
 
-	jsr	sub_E143A(pc)
+	jsr	stdsetup(pc)
 	move.l	8(a6),d0
-	jsr	sub_E148E(pc)
-	jmp	loc_E1470(pc)
-; End of function sub_E149C
+	jsr	stdwrite(pc)
+	jmp	stdcleanup(pc)
+; End of function _gemsputcbyte
 
 
 ; =============== S U B	R O U T	I N E =======================================
 
 
-sub_E14AC:
-	jsr	sub_E143A(pc)
+_gemsputptr:
+	jsr	stdsetup(pc)
 	move.l	8(a6),d0
-	jsr	sub_E148E(pc)
+	jsr	stdwrite(pc)
 	asr.l	#8,d0
-	jsr	sub_E148E(pc)
+	jsr	stdwrite(pc)
 	asr.l	#8,d0
-	jsr	sub_E148E(pc)
-	jmp	loc_E1470(pc)
-; End of function sub_E14AC
+	jsr	stdwrite(pc)
+	jmp	stdcleanup(pc)
+; End of function _gemsputptr
 
 
 ; =============== S U B	R O U T	I N E =======================================
 
 ; Attributes: bp-based frame
 
-StopMusic:
+_gemsinit:
 	link	a6,#0
-	jsr	sub_E13DA(pc)	; write Driver
-	jsr	sub_E1416(pc)	; reset Z80
+	jsr	_gemsloadz80(pc)	; write Driver
+	jsr	_gemsstartz80(pc)	; reset Z80
 	moveq	#-1,d0
 	move.l	d0,-(sp)
-	jsr	sub_E149C(pc)	; Write GEMS: 1 byte (command start: FF)
+	jsr	_gemsputcbyte(pc)	; Write GEMS: 1 byte (command start: FF)
 	moveq	#$B,d0
 	move.l	d0,-(sp)
-	jsr	sub_E149C(pc)	; Write GEMS: 1 byte (command: 0B - write pointers)
-	move.l	#unk_E160E,-(sp)	
-	jsr	sub_E14AC(pc)	; Write GEMS: 3 byte pointer (patch)
-	move.l	#unk_E25EA,-(sp)	
-	jsr	sub_E14AC(pc)	; Write GEMS: 3 byte pointer (envelope)
-	move.l	#unk_E2766,-(sp)	
-	jsr	sub_E14AC(pc)	; Write GEMS: 3 byte pointer (sequence)
-	move.l	#unk_E8716,-(sp)	
-	jsr	sub_E14AC(pc)	; Write GEMS: 3 byte pointer (samples)
+	jsr	_gemsputcbyte(pc)	; Write GEMS: 1 byte (command: 0B - write pointers)
+	move.l	#_patchbank,-(sp)	
+	jsr	_gemsputptr(pc)	; Write GEMS: 3 byte pointer (patch)
+	move.l	#_envbank,-(sp)	
+	jsr	_gemsputptr(pc)	; Write GEMS: 3 byte pointer (envelope)
+	move.l	#_seqbank,-(sp)	
+	jsr	_gemsputptr(pc)	; Write GEMS: 3 byte pointer (sequence)
+	move.l	#_sampbank,-(sp)	
+	jsr	_gemsputptr(pc)	; Write GEMS: 3 byte pointer (samples)
 	unlk	a6
 	rts
-; End of function StopMusic
+; End of function _gemsinit
 
 
 ; =============== S U B	R O U T	I N E =======================================
@@ -49753,7 +49753,7 @@ StopMusic:
 PlaySound:
 	move.l	a0,-(sp)
 	move.l	d0,-(sp)
-	bsr.s	sub_E151C
+	bsr.s	_gemsstartsong
 	move.l	(sp)+,d0
 	move.l	(sp)+,a0
 	rts
@@ -49763,27 +49763,27 @@ PlaySound:
 ; =============== S U B	R O U T	I N E =======================================
 
 
-sub_E151C:
-	jsr	sub_E143A(pc)
+_gemsstartsong:
+	jsr	stdsetup(pc)
 	moveq	#$10,d0
 
-loc_E1522:
-	jsr	sub_E1482(pc)
+com1arg:
+	jsr	stdcmdwrite(pc)
 	move.l	8(a6),d0
-	jsr	sub_E148E(pc)
-	jmp	loc_E1470(pc)
-; End of function sub_E151C
+	jsr	stdwrite(pc)
+	jmp	stdcleanup(pc)
+; End of function _gemsstartsong
 
 
 ; =============== S U B	R O U T	I N E =======================================
 
 ; only difference to PlaySound is that we move $12 instead of $10 to d0
-; before calling sub_E1482
+; before calling stdcmdwrite
 ;sub_E1532
 PlaySound2:
 	move.l	a0,-(sp)
 	move.l	d0,-(sp)
-	bsr.s	sub_E153E
+	bsr.s	_gemsstopsong
 	move.l	(sp)+,d0
 	move.l	(sp)+,a0
 	rts
@@ -49793,11 +49793,11 @@ PlaySound2:
 ; =============== S U B	R O U T	I N E =======================================
 
 
-sub_E153E:
-	jsr	sub_E143A(pc)
+_gemsstopsong:
+	jsr	stdsetup(pc)
 	moveq	#$12,d0
-	bra.s	loc_E1522
-; End of function sub_E153E
+	bra.s	com1arg
+; End of function _gemsstopsong
 
 
 ; =============== S U B	R O U T	I N E =======================================
@@ -49806,7 +49806,7 @@ sub_E153E:
 sub_E1546:
 	move.l	a0,-(sp)
 	move.l	d0,-(sp)
-	bsr.s	sub_E1552
+	bsr.s	_gemssettempo
 	move.l	(sp)+,d0
 	move.l	(sp)+,a0
 	rts
@@ -49816,122 +49816,122 @@ sub_E1546:
 ; =============== S U B	R O U T	I N E =======================================
 
 
-sub_E1552:
-	jsr	sub_E143A(pc)
+_gemssettempo:
+	jsr	stdsetup(pc)
 	moveq	#5,d0
-	bra.s	loc_E1522
-; End of function sub_E1552
+	bra.s	com1arg
+; End of function _gemssettempo
 
 
 ; =============== S U B	R O U T	I N E =======================================
 
 
-sub_E155A:
-	jsr	sub_E143A(pc)
+_gemspauseall:
+	jsr	stdsetup(pc)
 	moveq	#$C,d0
-	jsr	sub_E1482(pc)
-	jmp	loc_E1470(pc)
-; End of function sub_E155A
+	jsr	stdcmdwrite(pc)
+	jmp	stdcleanup(pc)
+; End of function _gemspauseall
 
 
 ; =============== S U B	R O U T	I N E =======================================
 
 
-sub_E1568:
-	jsr	sub_E143A(pc)
+_gemsresumeall:
+	jsr	stdsetup(pc)
 	moveq	#$D,d0
-	jsr	sub_E1482(pc)
-	jmp	loc_E1470(pc)
-; End of function sub_E1568
+	jsr	stdcmdwrite(pc)
+	jmp	stdcleanup(pc)
+; End of function _gemsresumeall
 
 ; ---------------------------------------------------------------------------
 
 loc_E1576:
-	jsr	sub_E143A(pc)
-	jmp	loc_E1470(pc)
+	jsr	stdsetup(pc)
+	jmp	stdcleanup(pc)
 ; ---------------------------------------------------------------------------
 
-loc_E157E:
-	jsr	sub_E143A(pc)
+_gemsprogchange:
+	jsr	stdsetup(pc)
 	moveq	#2,d0
 
-loc_E1584:
-	jsr	sub_E1482(pc)
+com2arg:
+	jsr	stdcmdwrite(pc)
 	move.l	8(a6),d0
-	jsr	sub_E148E(pc)
+	jsr	stdwrite(pc)
 	move.l	$C(a6),d0
-	jsr	sub_E148E(pc)
-	jmp	loc_E1470(pc)
+	jsr	stdwrite(pc)
+	jmp	stdcleanup(pc)
 ; ---------------------------------------------------------------------------
 
-loc_E159C:
-	jsr	sub_E143A(pc)
+_gemsnoteon:
+	jsr	stdsetup(pc)
 	moveq	#0,d0
-	bra.s	loc_E1584
+	bra.s	com2arg
 ; ---------------------------------------------------------------------------
 
-loc_E15A4:
-	jsr	sub_E143A(pc)
+_gemsnoteoff:
+	jsr	stdsetup(pc)
 	moveq	#1,d0
-	bra.s	loc_E1584
+	bra.s	com2arg
 ; ---------------------------------------------------------------------------
 
-loc_E15AC:
-	jsr	sub_E143A(pc)
+_gemspitchbend:
+	jsr	stdsetup(pc)
 	moveq	#5,d0
-	jsr	sub_E1482(pc)
+	jsr	stdcmdwrite(pc)
 	move.l	8(a6),d0
-	jsr	sub_E148E(pc)
+	jsr	stdwrite(pc)
 	move.l	$C(a6),d0
-	jsr	sub_E148E(pc)
+	jsr	stdwrite(pc)
 	asr.l	#8,d0
-	jsr	sub_E148E(pc)
-	jmp	loc_E1470(pc)
+	jsr	stdwrite(pc)
+	jmp	stdcleanup(pc)
 ; ---------------------------------------------------------------------------
 
-loc_E15D0:
-	jsr	sub_E143A(pc)
+_gemssetenv:
+	jsr	stdsetup(pc)
 	moveq	#6,d0
-	bra.s	loc_E1584
+	bra.s	com2arg
 ; ---------------------------------------------------------------------------
 
-loc_E15D8:
-	jsr	sub_E143A(pc)
+_gemsretrigenv:
+	jsr	stdsetup(pc)
 	moveq	#7,d0
-	bra.s	loc_E1584
+	bra.s	com2arg
 ; ---------------------------------------------------------------------------
 
-loc_E15E0:
-	jsr	sub_E143A(pc)
+_gemssustain:
+	jsr	stdsetup(pc)
 	moveq	#$E,d0
-	bra.s	loc_E1584
+	bra.s	com2arg
 ; ---------------------------------------------------------------------------
 
-loc_E15E8:
-	jsr	sub_E143A(pc)
+_gemsmute:
+	jsr	stdsetup(pc)
 	moveq	#$17,d0
-	jsr	sub_E1482(pc)
+	jsr	stdcmdwrite(pc)
 	move.l	8(a6),d0
-	jsr	sub_E148E(pc)
+	jsr	stdwrite(pc)
 	move.l	$C(a6),d0
-	jsr	sub_E148E(pc)
+	jsr	stdwrite(pc)
 	move.l	$10(a6),d0
-	jsr	sub_E148E(pc)
-	jmp	loc_E1470(pc)
+	jsr	stdwrite(pc)
+	jmp	stdcleanup(pc)
 ; ---------------------------------------------------------------------------
-unk_E160E:
+_patchbank:
 	binclude	"sound/instruments.bin"
-unk_E25EA:
+_envbank:
 	binclude	"sound/envelopes.bin"
-unk_E2766:
+_seqbank:
 	binclude	"sound/sequences.bin"
-unk_E8716:
+_sampbank:
 	binclude	"sound/samples.bin"
 ; FE976
-GEMS_Sounddriver:
+_Z80CODE:
 	binclude	"sound/GEMS_Sounddriver.bin"
 ; FFFFA
-GEMS_Sounddriver_End:
+_Z80END:
 	dc.b   0
 	dc.b   0
 	dc.b $FF
