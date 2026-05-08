@@ -6581,7 +6581,7 @@ sub_6874:
 loc_687C:
 	bsr.w	Pause_DarkenPalette
 	bsr.w	Palette_to_VRAM
-	jsr	(sub_E1334).l
+	jsr	(j__gemspauseall).l
 	cmpi.b	#3,(Game_Paused).w
 	bne.s	loc_6894
 	rts
@@ -6976,7 +6976,7 @@ loc_6C0A:
 loc_6C3E:
 	; Restore Eyeclops beam art that was overwritten by pause menu
 	sf	(Game_Paused).w
-	jsr	(sub_E1338).l
+	jsr	(j__gemsresumeall).l
 	lea	(off_Load_EyclopsBeamArt).l,a0
 	move.l	(a0),a0
 	jsr	(a0)
@@ -8429,7 +8429,7 @@ loc_7CD0:
 	move.w	(Current_Helmet).w,d7
 	tst.b	(Demo_Mode_flag).w
 	bne.s	loc_7CFE
-	jsr	(sub_E1334).l
+	jsr	(j__gemspauseall).l
 	moveq	#0,d0
 	lea	unk_7ED8(pc),a4
 	move.b	(a4,d7.w),d0
@@ -8563,8 +8563,8 @@ loc_7E14:
 
 loc_7E26:
 	move.b	(a4,d0.w),d0
-	jsr	(sub_E1330).l
-	jsr	(sub_E1338).l
+	jsr	(j_ChangeTempo).l
+	jsr	(j__gemsresumeall).l
 	move.w	(Current_Helmet).w,d7
 	bne.s	loc_7E48
 	move.l	d0,-(sp)
@@ -14771,7 +14771,7 @@ lose_life:							; Death management
 
 Teleport:
 	sf	(Allow_Pausing).w
-	jsr	(sub_E1334).l
+	jsr	(j__gemspauseall).l
 	cmpi.w	#$FFFB,d6
 	bne.s	+
 	move.l	d0,-(sp)
@@ -49478,51 +49478,32 @@ j_PlaySound2:
 
 ; Attributes: thunk
 
-sub_E1330:
-	jmp	sub_E1546(pc)
-; End of function sub_E1330
+j_ChangeTempo:
+	jmp	ChangeTempo(pc)
+; End of function j_ChangeTempo
 
 
 ; =============== S U B	R O U T	I N E =======================================
 
 ; Attributes: thunk
 
-sub_E1334:
+j__gemspauseall:
 	jmp	_gemspauseall(pc)
-; End of function sub_E1334
+; End of function j__gemspauseall
 
 
 ; =============== S U B	R O U T	I N E =======================================
 
 ; Attributes: thunk
 
-sub_E1338:
+j__gemsresumeall:
 	jmp	_gemsresumeall(pc)
-; End of function sub_E1338
+; End of function j__gemsresumeall
 
 
 ; =============== S U B	R O U T	I N E =======================================
 
 ; Attributes: thunk
-
-sub_E133C:
-	jmp	_gemsstopall(pc)
-; ---------------------------------------------------------------------------
-	jmp	_gemsprogchange(pc)
-; ---------------------------------------------------------------------------
-	jmp	_gemsnoteon(pc)
-; ---------------------------------------------------------------------------
-	jmp	_gemsnoteoff(pc)
-; ---------------------------------------------------------------------------
-	jmp	_gemspitchbend(pc)
-; ---------------------------------------------------------------------------
-	jmp	_gemssetenv(pc)
-; ---------------------------------------------------------------------------
-	jmp	_gemsretrigenv(pc)
-; ---------------------------------------------------------------------------
-	jmp	_gemssustain(pc)
-; ---------------------------------------------------------------------------
-	jmp	_gemsmute(pc)
 
 PlaySound:	;	Not native to GEMS
 	move.l	a0,-(sp)
@@ -49545,20 +49526,14 @@ PlaySound2:	;	Not native to GEMS
 	rts
 ; End of function PlaySound2
 
-sub_E1546:	;	Not native to GEMS
+ChangeTempo:	;	Not native to GEMS, originally called _gemssettempo
 	move.l	a0,-(sp)
 	move.l	d0,-(sp)
 	bsr.w	_gemssettempo
 	move.l	(sp)+,d0
 	move.l	(sp)+,a0
 	rts
-; End of function sub_E1546
-
-loc_E13B0:	;	Not native to GEMS
-	move.w	4(a6),d0
-	btst	#1,d0
-	bne.s	loc_E13B0
-	rts
+; End of function ChangeTempo
 
 	include "GEMS/gems.s"
 
