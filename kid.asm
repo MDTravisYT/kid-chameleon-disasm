@@ -23627,9 +23627,9 @@ Load_InGame:
 	jsr	(j_sub_44B0).w
 	jsr	(j_Init_Timer_and_Bonus_Flags).w
 	jsr	(j__gemsinit).l
-	move.l	#$F,-(sp)
-	jsr	(sub_E133C).l
-	move.l	(sp)+,d0
+;	move.l	#$F,-(sp)
+;	jsr	(sub_E133C).l
+;	move.l	(sp)+,d0
 	move.w	(Current_LevelID).w,d0
 	move.l	(LnkTo_MapOrder_Index).l,a0
 	move.b	(a0,d0.w),d0

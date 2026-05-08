@@ -792,14 +792,27 @@ _Z80END
 ;	 align	 2
 	even
 
+kcsounds	=	1	;	toggle on to use original Kid Chameleon sound data
+
+	if kcsounds
 _patchbank
-	 include	 GEMS/pbank.asm
+	binclude	GEMS/instruments.bin
 _envbank
-	 include	 GEMS/mbank.asm
+	binclude	GEMS/envelopes.bin
 _seqbank
-	 include GEMS/sbank.asm
+	binclude	GEMS/sequences.bin
 _sampbank
-	 include GEMS/dbank.asm
+	binclude	GEMS/samples.bin
+	else
+_patchbank
+	include		GEMS/pbank.asm
+_envbank
+	include		GEMS/mbank.asm
+_seqbank
+	include		GEMS/sbank.asm
+_sampbank
+	include		GEMS/dbank.asm
+	endif
 
 ;	 align	 2
 	even
