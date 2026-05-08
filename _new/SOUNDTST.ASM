@@ -70,6 +70,7 @@ SoundTest:
 	bra.w	.loop
 .exit:
 	;move.b  #GMNO_SELECT,gamemode.w
+	jsr	Load_IntroSequence1
 	rts
 .up10:
 	sub.w	#16,	SndTstID
