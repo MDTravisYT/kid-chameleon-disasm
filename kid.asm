@@ -49425,33 +49425,30 @@ unk_E11D6:  sprite_frame_vram   $018, $08, $00, $10, $1E
 ; =============== S U B	R O U T	I N E =======================================
 
 ;E1304
-j__gemsholdz80:
-	jmp	_gemsdmastart(pc)
+j__gemsholdz80:	;	stub, no longer needed
+	rts
+;	jmp	_gemsdmastart(pc)
 
 ; ---------------------------------------------------------------------------
 
 ;E1308
-j__gemsreleasez80:
-	jmp	_gemsdmaend(pc)
-; ---------------------------------------------------------------------------
-	jmp	_gemsholdz80(pc)
-; ---------------------------------------------------------------------------
-	jmp	_gemsreleasez80(pc)
-; ---------------------------------------------------------------------------
-	jmp	_gemsloadz80(pc)
-; ---------------------------------------------------------------------------
-	jmp	_gemsstartz80(pc)
-; ---------------------------------------------------------------------------
-	jmp	_gemsputcbyte(pc)
-; ---------------------------------------------------------------------------
-	jmp	_gemsputptr(pc)
+j__gemsreleasez80:	;	stub, no longer needed
+	rts
+;	jmp	_gemsdmaend(pc)
+;	jmp	_gemsholdz80(pc)
+;	jmp	_gemsreleasez80(pc)
+;	jmp	_gemsloadz80(pc)
+;	jmp	_gemsstartz80(pc)
+;	jmp	_gemsputcbyte(pc)
+;	jmp	_gemsputptr(pc)
 
 ; =============== S U B	R O U T	I N E =======================================
 
 ; Attributes: thunk
 
-j__gemsinit:
-	jmp	_gemsinit(pc)
+j__gemsinit:	;	stub, no longer needed
+	rts
+;	jmp	_gemsinit(pc)
 ; End of function j__gemsinit
 
 
@@ -49487,8 +49484,9 @@ j_ChangeTempo:
 
 ; Attributes: thunk
 
-j__gemspauseall:
-	jmp	_gemspauseall(pc)
+j__gemspauseall:	;	temp stub
+	rts
+;	jmp	_gemspauseall(pc)
 ; End of function j__gemspauseall
 
 
@@ -49496,8 +49494,9 @@ j__gemspauseall:
 
 ; Attributes: thunk
 
-j__gemsresumeall:
-	jmp	_gemsresumeall(pc)
+j__gemsresumeall:	;	temp stub
+	rts
+;	jmp	_gemsresumeall(pc)
 ; End of function j__gemsresumeall
 
 
@@ -49505,37 +49504,37 @@ j__gemsresumeall:
 
 ; Attributes: thunk
 
-PlaySound:	;	Not native to GEMS
-	move.l	a0,-(sp)
-	move.l	d0,-(sp)
-	bsr.w	_gemsstartsong
-	move.l	(sp)+,d0
-	move.l	(sp)+,a0
+PlaySound:	;	temp stub
+;	move.l	a0,-(sp)
+;	move.l	d0,-(sp)
+;	bsr.w	_gemsstartsong
+;	move.l	(sp)+,d0
+;	move.l	(sp)+,a0
 	rts
 ; End of function PlaySound
 
 ; only difference to PlaySound is that we move $12 instead of $10 to d0
 ; before calling stdcmdwrite
 ;sub_E1532
-PlaySound2:	;	Not native to GEMS
-	move.l	a0,-(sp)
-	move.l	d0,-(sp)
-	bsr.w	_gemsstopsong
-	move.l	(sp)+,d0
-	move.l	(sp)+,a0
+PlaySound2:	;	temp stub
+;	move.l	a0,-(sp)
+;	move.l	d0,-(sp)
+;	bsr.w	_gemsstopsong
+;	move.l	(sp)+,d0
+;	move.l	(sp)+,a0
 	rts
 ; End of function PlaySound2
 
-ChangeTempo:	;	Not native to GEMS, originally called _gemssettempo
-	move.l	a0,-(sp)
-	move.l	d0,-(sp)
-	bsr.w	_gemssettempo
-	move.l	(sp)+,d0
-	move.l	(sp)+,a0
+ChangeTempo:	;	stub, no longer needed
+;	move.l	a0,-(sp)
+;	move.l	d0,-(sp)
+;	bsr.w	_gemssettempo
+;	move.l	(sp)+,d0
+;	move.l	(sp)+,a0
 	rts
 ; End of function ChangeTempo
 
-	include "GEMS/gems.s"
+;	include "GEMS/gems.s"
 
 EndOfROM:
 	END
