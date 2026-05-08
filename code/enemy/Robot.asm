@@ -245,7 +245,7 @@ loc_3AA88:
 loc_3AA9E:
 	st	$15(a2)
 	move.l	#stru_3A6E2,a1
-	addi.w	#$14,a1
+	add.w	#$14,a1
 	move.l	a1,$2E(a3)
 	move.w	2(a1),addroffset_sprite(a3)
 	st	is_animated(a3)

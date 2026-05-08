@@ -305,7 +305,7 @@ loc_3492C:
 	move.l	#loc_3CD16,4(a0)
 	move.w	x_pos(a3),$44(a0)
 	move.w	y_pos(a3),d7
-	addi.w	#$10,d7
+	add.l	#8,d7
 	move.w	d7,$46(a0)
 	move.b	x_direction(a3),$48(a0)
 	move.w	$46(a5),$4A(a0)

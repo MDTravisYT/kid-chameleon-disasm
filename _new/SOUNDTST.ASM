@@ -109,32 +109,14 @@ PrintMsg:
 	move.w  #ASCII_TILEDELTA,d4
 
 .Loop:
-;	rept 4	; unroll 4
+	rept 4	; unroll 4
 	moveq	#0,d3
 	move.b	(a0)+,d3
 	beq.s	.Done
 	add.w	d4,d3
 	or.w	d5,d3
 	move.w	d3,VDPDATA
-	moveq	#0,d3
-	move.b	(a0)+,d3
-	beq.s	.Done
-	add.w	d4,d3
-	or.w	d5,d3
-	move.w	d3,VDPDATA
-	moveq	#0,d3
-	move.b	(a0)+,d3
-	beq.s	.Done
-	add.w	d4,d3
-	or.w	d5,d3
-	move.w	d3,VDPDATA
-	moveq	#0,d3
-	move.b	(a0)+,d3
-	beq.s	.Done
-	add.w	d4,d3
-	or.w	d5,d3
-	move.w	d3,VDPDATA
-;	endr
+	endr
 
 	bra.s	.Loop
 .Done:
@@ -232,6 +214,6 @@ readjoypads_sonic:
 	move.b  d1,(a0)+
 	rts
 
-ArtUnc_Text:    binclude  "_new/ASCII.BIN"
+ArtUnc_Text:    incbin  "_new/ASCII.BIN"
 ArtUnc_TextE:
 ArtUnc_TextSZ   EQU     ArtUnc_TextE-ArtUnc_Text

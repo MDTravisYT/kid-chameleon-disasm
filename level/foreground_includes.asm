@@ -1,215 +1,215 @@
-ForegroundLayout_5C:  binclude    "level/foreground/5C.bin"
+ForegroundLayout_5C:  incbin    "level/foreground/5C.bin"
     align 2
-ForegroundLayout_59:  binclude    "level/foreground/59.bin"
+ForegroundLayout_59:  incbin    "level/foreground/59.bin"
     align 2
-ForegroundLayout_09:  binclude    "level/foreground/09.bin"
+ForegroundLayout_09:  incbin    "level/foreground/09.bin"
     align 2
-ForegroundLayout_22:  binclude    "level/foreground/22.bin"
+ForegroundLayout_22:  incbin    "level/foreground/22.bin"
     align 2
-ForegroundLayout_7A:  binclude    "level/foreground/7A.bin"
+ForegroundLayout_7A:  incbin    "level/foreground/7A.bin"
     align 2
-ForegroundLayout_7B:  binclude    "level/foreground/7B.bin"
+ForegroundLayout_7B:  incbin    "level/foreground/7B.bin"
     align 2
-ForegroundLayout_7C:  binclude    "level/foreground/7C.bin"
+ForegroundLayout_7C:  incbin    "level/foreground/7C.bin"
     align 2
-ForegroundLayout_7D:  binclude    "level/foreground/7D.bin"
+ForegroundLayout_7D:  incbin    "level/foreground/7D.bin"
     align 2
-ForegroundLayout_12:  binclude    "level/foreground/12.bin"
+ForegroundLayout_12:  incbin    "level/foreground/12.bin"
     align 2
-ForegroundLayout_47:  binclude    "level/foreground/47.bin"
+ForegroundLayout_47:  incbin    "level/foreground/47.bin"
     align 2
-ForegroundLayout_27:  binclude    "level/foreground/27.bin"
+ForegroundLayout_27:  incbin    "level/foreground/27.bin"
     align 2
-ForegroundLayout_11:  binclude    "level/foreground/11.bin"
+ForegroundLayout_11:  incbin    "level/foreground/11.bin"
     align 2
-ForegroundLayout_10:  binclude    "level/foreground/10.bin"
+ForegroundLayout_10:  incbin    "level/foreground/10.bin"
     align 2
-ForegroundLayout_26:  binclude    "level/foreground/26.bin"
+ForegroundLayout_26:  incbin    "level/foreground/26.bin"
     align 2
-ForegroundLayout_5A:  binclude    "level/foreground/5A.bin"
+ForegroundLayout_5A:  incbin    "level/foreground/5A.bin"
     align 2
-ForegroundLayout_58:  binclude    "level/foreground/58.bin"
+ForegroundLayout_58:  incbin    "level/foreground/58.bin"
     align 2
-ForegroundLayout_3C:  binclude    "level/foreground/3C.bin"
+ForegroundLayout_3C:  incbin    "level/foreground/3C.bin"
     align 2
-ForegroundLayout_3D:  binclude    "level/foreground/3D.bin"
+ForegroundLayout_3D:  incbin    "level/foreground/3D.bin"
     align 2
-ForegroundLayout_3E:  binclude    "level/foreground/3E.bin"
+ForegroundLayout_3E:  incbin    "level/foreground/3E.bin"
     align 2
-ForegroundLayout_00:  binclude    "level/foreground/00.bin"
+ForegroundLayout_00:  incbin    "level/foreground/00.bin"
     align 2
-ForegroundLayout_01:  binclude    "level/foreground/01.bin"
+ForegroundLayout_01:  incbin    "level/foreground/01.bin"
     align 2
-ForegroundLayout_04:  binclude    "level/foreground/04.bin"
+ForegroundLayout_04:  incbin    "level/foreground/04.bin"
     align 2
-ForegroundLayout_05:  binclude    "level/foreground/05.bin"
+ForegroundLayout_05:  incbin    "level/foreground/05.bin"
     align 2
-ForegroundLayout_08:  binclude    "level/foreground/08.bin"
+ForegroundLayout_08:  incbin    "level/foreground/08.bin"
     align 2
-ForegroundLayout_49:  binclude    "level/foreground/49.bin"
+ForegroundLayout_49:  incbin    "level/foreground/49.bin"
     align 2
-ForegroundLayout_4F:  binclude    "level/foreground/4F.bin"
+ForegroundLayout_4F:  incbin    "level/foreground/4F.bin"
     align 2
-ForegroundLayout_56:  binclude    "level/foreground/56.bin"
+ForegroundLayout_56:  incbin    "level/foreground/56.bin"
     align 2
-ForegroundLayout_2B:  binclude    "level/foreground/2B.bin"
+ForegroundLayout_2B:  incbin    "level/foreground/2B.bin"
     align 2
-ForegroundLayout_0B:  binclude    "level/foreground/0B.bin"
+ForegroundLayout_0B:  incbin    "level/foreground/0B.bin"
     align 2
-ForegroundLayout_13:  binclude    "level/foreground/13.bin"
+ForegroundLayout_13:  incbin    "level/foreground/13.bin"
     align 2
-ForegroundLayout_37:  binclude    "level/foreground/37.bin"
+ForegroundLayout_37:  incbin    "level/foreground/37.bin"
     align 2
-ForegroundLayout_02:  binclude    "level/foreground/02.bin"
+ForegroundLayout_02:  incbin    "level/foreground/02.bin"
     align 2
-ForegroundLayout_2C:  binclude    "level/foreground/2C.bin"
+ForegroundLayout_2C:  incbin    "level/foreground/2C.bin"
     align 2
-ForegroundLayout_30:  binclude    "level/foreground/30.bin"
+ForegroundLayout_30:  incbin    "level/foreground/30.bin"
     align 2
-ForegroundLayout_57:  binclude    "level/foreground/57.bin"
+ForegroundLayout_57:  incbin    "level/foreground/57.bin"
     align 2
-ForegroundLayout_21:  binclude    "level/foreground/21.bin"
+ForegroundLayout_21:  incbin    "level/foreground/21.bin"
     align 2
-ForegroundLayout_25:  binclude    "level/foreground/25.bin"
+ForegroundLayout_25:  incbin    "level/foreground/25.bin"
     align 2
-ForegroundLayout_17:  binclude    "level/foreground/17.bin"
+ForegroundLayout_17:  incbin    "level/foreground/17.bin"
     align 2
-ForegroundLayout_15:  binclude    "level/foreground/15.bin"
+ForegroundLayout_15:  incbin    "level/foreground/15.bin"
     align 2
-ForegroundLayout_18:  binclude    "level/foreground/18.bin"
+ForegroundLayout_18:  incbin    "level/foreground/18.bin"
     align 2
-ForegroundLayout_19:  binclude    "level/foreground/19.bin"
+ForegroundLayout_19:  incbin    "level/foreground/19.bin"
     align 2
-ForegroundLayout_1C:  binclude    "level/foreground/1C.bin"
+ForegroundLayout_1C:  incbin    "level/foreground/1C.bin"
     align 2
-ForegroundLayout_1D:  binclude    "level/foreground/1D.bin"
+ForegroundLayout_1D:  incbin    "level/foreground/1D.bin"
     align 2
-ForegroundLayout_4A:  binclude    "level/foreground/4A.bin"
+ForegroundLayout_4A:  incbin    "level/foreground/4A.bin"
     align 2
-ForegroundLayout_03:  binclude    "level/foreground/03.bin"
+ForegroundLayout_03:  incbin    "level/foreground/03.bin"
     align 2
-ForegroundLayout_2D:  binclude    "level/foreground/2D.bin"
+ForegroundLayout_2D:  incbin    "level/foreground/2D.bin"
     align 2
-ForegroundLayout_31:  binclude    "level/foreground/31.bin"
+ForegroundLayout_31:  incbin    "level/foreground/31.bin"
     align 2
-ForegroundLayout_40:  binclude    "level/foreground/40.bin"
+ForegroundLayout_40:  incbin    "level/foreground/40.bin"
     align 2
-ForegroundLayout_14:  binclude    "level/foreground/14.bin"
+ForegroundLayout_14:  incbin    "level/foreground/14.bin"
     align 2
-ForegroundLayout_38:  binclude    "level/foreground/38.bin"
+ForegroundLayout_38:  incbin    "level/foreground/38.bin"
     align 2
-ForegroundLayout_35:  binclude    "level/foreground/35.bin"
+ForegroundLayout_35:  incbin    "level/foreground/35.bin"
     align 2
-ForegroundLayout_4B:  binclude    "level/foreground/4B.bin"
+ForegroundLayout_4B:  incbin    "level/foreground/4B.bin"
     align 2
-ForegroundLayout_4E:  binclude    "level/foreground/4E.bin"
+ForegroundLayout_4E:  incbin    "level/foreground/4E.bin"
     align 2
-ForegroundLayout_0C:  binclude    "level/foreground/0C.bin"
+ForegroundLayout_0C:  incbin    "level/foreground/0C.bin"
     align 2
-ForegroundLayout_2E:  binclude    "level/foreground/2E.bin"
+ForegroundLayout_2E:  incbin    "level/foreground/2E.bin"
     align 2
-ForegroundLayout_34:  binclude    "level/foreground/34.bin"
+ForegroundLayout_34:  incbin    "level/foreground/34.bin"
     align 2
-ForegroundLayout_0A:  binclude    "level/foreground/0A.bin"
+ForegroundLayout_0A:  incbin    "level/foreground/0A.bin"
     align 2
-ForegroundLayout_4C:  binclude    "level/foreground/4C.bin"
+ForegroundLayout_4C:  incbin    "level/foreground/4C.bin"
     align 2
-ForegroundLayout_4D:  binclude    "level/foreground/4D.bin"
+ForegroundLayout_4D:  incbin    "level/foreground/4D.bin"
     align 2
-ForegroundLayout_2F:  binclude    "level/foreground/2F.bin"
+ForegroundLayout_2F:  incbin    "level/foreground/2F.bin"
     align 2
-ForegroundLayout_16:  binclude    "level/foreground/16.bin"
+ForegroundLayout_16:  incbin    "level/foreground/16.bin"
     align 2
-ForegroundLayout_39:  binclude    "level/foreground/39.bin"
+ForegroundLayout_39:  incbin    "level/foreground/39.bin"
     align 2
-ForegroundLayout_0F:  binclude    "level/foreground/0F.bin"
+ForegroundLayout_0F:  incbin    "level/foreground/0F.bin"
     align 2
-ForegroundLayout_3F:  binclude    "level/foreground/3F.bin"
+ForegroundLayout_3F:  incbin    "level/foreground/3F.bin"
     align 2
-ForegroundLayout_3A:  binclude    "level/foreground/3A.bin"
+ForegroundLayout_3A:  incbin    "level/foreground/3A.bin"
     align 2
-ForegroundLayout_3B:  binclude    "level/foreground/3B.bin"
+ForegroundLayout_3B:  incbin    "level/foreground/3B.bin"
     align 2
-ForegroundLayout_55:  binclude    "level/foreground/55.bin"
+ForegroundLayout_55:  incbin    "level/foreground/55.bin"
     align 2
-ForegroundLayout_36:  binclude    "level/foreground/36.bin"
+ForegroundLayout_36:  incbin    "level/foreground/36.bin"
     align 2
-ForegroundLayout_32:  binclude    "level/foreground/32.bin"
+ForegroundLayout_32:  incbin    "level/foreground/32.bin"
     align 2
-ForegroundLayout_53:  binclude    "level/foreground/53.bin"
+ForegroundLayout_53:  incbin    "level/foreground/53.bin"
     align 2
-ForegroundLayout_54:  binclude    "level/foreground/54.bin"
+ForegroundLayout_54:  incbin    "level/foreground/54.bin"
     align 2
-ForegroundLayout_0E:  binclude    "level/foreground/0E.bin"
+ForegroundLayout_0E:  incbin    "level/foreground/0E.bin"
     align 2
-ForegroundLayout_0D:  binclude    "level/foreground/0D.bin"
+ForegroundLayout_0D:  incbin    "level/foreground/0D.bin"
     align 2
-ForegroundLayout_33:  binclude    "level/foreground/33.bin"
+ForegroundLayout_33:  incbin    "level/foreground/33.bin"
     align 2
 
 ; Some unused junk data. Maybe uncompressed foreground layout?
 ; It has the size of a standard Elsewhere foreground layout.
-	binclude "ingame/misc/unused_67D9C.bin"
+	incbin "ingame/misc/unused_67D9C.bin"
 ; filler
     rept 10080
 	dc.b	$4A
-    endm
+    endr
 
-ForegroundLayout_5D:  binclude    "level/foreground/5D.bin"
+ForegroundLayout_5D:  incbin    "level/foreground/5D.bin"
     align 2
-ForegroundLayout_5E:  binclude    "level/foreground/5E.bin"
+ForegroundLayout_5E:  incbin    "level/foreground/5E.bin"
     align 2
-ForegroundLayout_5F:  binclude    "level/foreground/5F.bin"
+ForegroundLayout_5F:  incbin    "level/foreground/5F.bin"
     align 2
-ForegroundLayout_60:  binclude    "level/foreground/60.bin"
+ForegroundLayout_60:  incbin    "level/foreground/60.bin"
     align 2
-ForegroundLayout_61:  binclude    "level/foreground/61.bin"
+ForegroundLayout_61:  incbin    "level/foreground/61.bin"
     align 2
-ForegroundLayout_62:  binclude    "level/foreground/62.bin"
+ForegroundLayout_62:  incbin    "level/foreground/62.bin"
     align 2
-ForegroundLayout_63:  binclude    "level/foreground/63.bin"
+ForegroundLayout_63:  incbin    "level/foreground/63.bin"
     align 2
-ForegroundLayout_64:  binclude    "level/foreground/64.bin"
+ForegroundLayout_64:  incbin    "level/foreground/64.bin"
     align 2
-ForegroundLayout_65:  binclude    "level/foreground/65.bin"
+ForegroundLayout_65:  incbin    "level/foreground/65.bin"
     align 2
-ForegroundLayout_66:  binclude    "level/foreground/66.bin"
+ForegroundLayout_66:  incbin    "level/foreground/66.bin"
     align 2
-ForegroundLayout_67:  binclude    "level/foreground/67.bin"
+ForegroundLayout_67:  incbin    "level/foreground/67.bin"
     align 2
-ForegroundLayout_68:  binclude    "level/foreground/68.bin"
+ForegroundLayout_68:  incbin    "level/foreground/68.bin"
     align 2
-ForegroundLayout_69:  binclude    "level/foreground/69.bin"
+ForegroundLayout_69:  incbin    "level/foreground/69.bin"
     align 2
-ForegroundLayout_6A:  binclude    "level/foreground/6A.bin"
+ForegroundLayout_6A:  incbin    "level/foreground/6A.bin"
     align 2
-ForegroundLayout_6B:  binclude    "level/foreground/6B.bin"
+ForegroundLayout_6B:  incbin    "level/foreground/6B.bin"
     align 2
-ForegroundLayout_6C:  binclude    "level/foreground/6C.bin"
+ForegroundLayout_6C:  incbin    "level/foreground/6C.bin"
     align 2
-ForegroundLayout_6D:  binclude    "level/foreground/6D.bin"
+ForegroundLayout_6D:  incbin    "level/foreground/6D.bin"
     align 2
-ForegroundLayout_6E:  binclude    "level/foreground/6E.bin"
+ForegroundLayout_6E:  incbin    "level/foreground/6E.bin"
     align 2
-ForegroundLayout_6F:  binclude    "level/foreground/6F.bin"
+ForegroundLayout_6F:  incbin    "level/foreground/6F.bin"
     align 2
-ForegroundLayout_70:  binclude    "level/foreground/70.bin"
+ForegroundLayout_70:  incbin    "level/foreground/70.bin"
     align 2
-ForegroundLayout_71:  binclude    "level/foreground/71.bin"
+ForegroundLayout_71:  incbin    "level/foreground/71.bin"
     align 2
-ForegroundLayout_72:  binclude    "level/foreground/72.bin"
+ForegroundLayout_72:  incbin    "level/foreground/72.bin"
     align 2
-ForegroundLayout_73:  binclude    "level/foreground/73.bin"
+ForegroundLayout_73:  incbin    "level/foreground/73.bin"
     align 2
-ForegroundLayout_74:  binclude    "level/foreground/74.bin"
+ForegroundLayout_74:  incbin    "level/foreground/74.bin"
     align 2
-ForegroundLayout_75:  binclude    "level/foreground/75.bin"
+ForegroundLayout_75:  incbin    "level/foreground/75.bin"
     align 2
-ForegroundLayout_76:  binclude    "level/foreground/76.bin"
+ForegroundLayout_76:  incbin    "level/foreground/76.bin"
     align 2
-ForegroundLayout_77:  binclude    "level/foreground/77.bin"
+ForegroundLayout_77:  incbin    "level/foreground/77.bin"
     align 2
-ForegroundLayout_78:  binclude    "level/foreground/78.bin"
+ForegroundLayout_78:  incbin    "level/foreground/78.bin"
     align 2
-ForegroundLayout_79:  binclude    "level/foreground/79.bin"
+ForegroundLayout_79:  incbin    "level/foreground/79.bin"
     align 2

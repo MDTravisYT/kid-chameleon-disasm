@@ -27,7 +27,7 @@ Sonic Retro community, in particular for the Sonic 2 disassembly and plenty of h
 The split.py script takes most of the data from the ROM and splits it
 into separate binary files. Thus the code file kid.asm contains almost
 exclusively assembly code, with data included via ``include`` or
-``binclude`` directives. This disassembly is made for the AS assembler
+``incbin`` directives. This disassembly is made for the AS assembler
 which is included in the ``build/`` folder, and building should work on
 both Linux and Windows. 
 

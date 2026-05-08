@@ -23,3 +23,7 @@ planeed_prj/*.exe
 *.kcm
 /kid.lst
 /tiled
+/_errors.log
+/chameleon.bin
+/chameleon.lst
+/diff.txt

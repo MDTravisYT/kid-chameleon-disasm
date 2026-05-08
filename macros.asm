@@ -12,7 +12,7 @@ levnamhdr	macro	name, unknown, act
 ;		dc.b	xsize, ysize, fgstyle, bgstyle
 ;		dc.w	playerx, playery, flagx, flagy
 maphdr		macro	fnamehdr, fgtile, block, bgtile, enemy
-		binclude fnamehdr
+		incbin fnamehdr
 		dc.l	fgtile, block, bgtile, enemy
 		endm
 ; ---------------------------------------------------------------------------
@@ -34,18 +34,18 @@ enemyloaddata	macro	paladdr, artaddr, codeaddr
 ; ---------------------------------------------------------------------------
 ; if the art crosses a $20000 boundary, align it to make DMA safe
 align_dmasafe	macro   artsize
-		    if ((*) ! ((*)+artsize))&$FE0000 <> 0
-			align $8000
-		    endif
+		;    if ((*) ! ((*)+artsize))&$FE0000 <> 0
+		;	align $8000
+		;    endif
 		endm
 
 ; ---------------------------------------------------------------------------
-sprite_frame_unc	macro	xcenter, ycenter, width, height, art, {INTLABEL}
+sprite_frame_unc	macro	xcenter, ycenter, width, height, art, label
 		align_dmasafe	((((width+7)>>3)*((height+7)>>3))*$20 + 6)
-__LABEL__ label *
+\label:
 		dc.b	xcenter, ycenter
 		dc.w	width, height
-		binclude art
+		incbin art
 		endm
 
 ; ---------------------------------------------------------------------------
@@ -88,10 +88,10 @@ DMA_data_thunk = 		$FFFFF800
 
 
 ; makes a VDP address difference
-vdpCommDelta function addr,((addr&$3FFF)<<16)|((addr&$C000)>>14)
+vdpCommDelta func addr {((addr&$3FFF)<<16)|((addr&$C000)>>14)}
 
 ; makes a VDP command
-vdpComm function addr,type,rwd,(((type&rwd)&3)<<30)|((addr&$3FFF)<<16)|(((type&rwd)&$FC)<<2)|((addr&$C000)>>14)
+vdpComm func addr,type,rwd {(((type&rwd)&3)<<30)|((addr&$3FFF)<<16)|(((type&rwd)&$FC)<<2)|((addr&$C000)>>14)}
 
 ; values for the type argument
 VRAM = %100001
@@ -116,7 +116,7 @@ dma68kToVDP macro source,dest,length,type
 	
 ; calculates initial loop counter value for a dbf loop
 ; that writes n bytes total at 4 bytes per iteration
-bytesToLcnt function n,n>>2-1
+bytesToLcnt func n {n>>2-1}
 
 ; ---------------------------------------------------------------------------
 ; Z80 addresses
@@ -145,113 +145,3 @@ HW_Port_2_SCtrl =			$A10019
 HW_Expansion_TxData =		$A1001B
 HW_Expansion_RxData =		$A1001D
 HW_Expansion_SCtrl =		$A1001F
-
-
-
-    if zeroOffsetOptimization=0
-    ; disable a space optimization in AS so we can build a bit-perfect rom
-    ; (the hard way, but it requires no modification of AS itself)
-
-
-chkop function op,ref,(substr(lowstring(op),0,strlen(ref))<>ref)
-
-; 1-arg instruction that's self-patching to remove 0-offset optimization
-insn1op	 macro oper,x
-	  if (chkop("x","0(") && chkop("x","id(") && chkop("x","slot_rout("))
-		!oper	x
-	  else
-		!oper	1+x
-		!org	*-1
-		!dc.b	0
-	  endif
-	 endm
-
-; 2-arg instruction that's self-patching to remove 0-offset optimization
-insn2op	 macro oper,x,y
-	  if (chkop("x","0(") && chkop("x","id(") && chkop("x","slot_rout("))
-		  if (chkop("y","0(") && chkop("y","id(") && chkop("y","slot_rout("))
-			!oper	x,y
-		  else
-			!oper	x,1+y
-			!org	*-1
-			!dc.b	0
-		  endif
-	  else
-		if chkop("y","d")
-		  if (chkop("y","0(") && chkop("y","id(") && chkop("y","slot_rout("))
-start:
-			!oper	1+x,y
-end:
-			!org	start+3
-			!dc.b	0
-			!org	end
-		  else
-			!oper	1+x,1+y
-			!org	*-3
-			!dc.b	0
-			!org	*+1
-			!dc.b	0
-		  endif
-		else
-			!oper	1+x,y
-			!org	*-1
-			!dc.b	0
-		endif
-	  endif
-	 endm
-
-	; instructions that were used with 0(a#) syntax
-	; defined to assemble as they originally did
-_move	macro
-		insn2op move.ATTRIBUTE, ALLARGS
-	endm
-_add	macro
-		insn2op add.ATTRIBUTE, ALLARGS
-	endm
-_addq	macro
-		insn2op addq.ATTRIBUTE, ALLARGS
-	endm
-_cmp	macro
-		insn2op cmp.ATTRIBUTE, ALLARGS
-	endm
-_cmpi	macro
-		insn2op cmpi.ATTRIBUTE, ALLARGS
-	endm
-_clr	macro
-		insn1op clr.ATTRIBUTE, ALLARGS
-	endm
-_tst	macro
-		insn1op tst.ATTRIBUTE, ALLARGS
-	endm
-    else
-
-	; regular meaning to the assembler; better but unlike original
-_move	macro
-		!move.ATTRIBUTE ALLARGS
-	endm
-_add	macro
-		!add.ATTRIBUTE ALLARGS
-	endm
-_addq	macro
-		!addq.ATTRIBUTE ALLARGS
-	endm
-_cmp	macro
-		!cmp.ATTRIBUTE ALLARGS
-	endm
-_cmpi	macro
-		!cmpi.ATTRIBUTE ALLARGS
-	endm
-_clr	macro
-		!clr.ATTRIBUTE ALLARGS
-	endm
-_tst	macro
-		!tst.ATTRIBUTE ALLARGS
-	endm
-    endif
-
-; define the even pseudo-instruction
-even macro
-	if (*)&1
-		dc.b 0 ;ds.b 1 
-	endif
-    endm

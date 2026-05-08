@@ -4,12 +4,10 @@
 ; version.
 ; 
 ; Many macros and other stuff have been taken from the Sonic 2 disassembly,
-; credit goes to their respective authors:
+; credit and a big "Fuck You" goes to their respective authors:
 ; https://github.com/sonicretro/s2disasm
-; ===========================================================================
-	CPU 68000	; uses 68008 by default
-	padding off	; we don't want AS padding out dc.b instructions
-	supmode on	; we don't need warnings about privileged instructions
+;
+; Modified by MDTravis for VASM usage
 ; ===========================================================================
 ; Set to 1 to compile all instances of 0(ax) as (ax)
 ; (Takes less space but is not bit-perfect.)
@@ -68,16 +66,16 @@ StartOfROM:
 Vectors:
 	dc.l Initial_stack	; Initial stack pointer value
 	dc.l EntryPoint		; Start of program
-	dc.l BusError		; Bus error
-	dc.l AddressError		; Address error (4)
-	dc.l IllegalInstruction        ; Illegal instruction
-	dc.l DivisionByZero        ; Division by zero
-	dc.l ChkException        ; CHK exception
-	dc.l TRAPVException        ; TRAPV exception (8)
-off_20:	dc.l PrivilegeViolation    ; Privilege violation
-	dc.l TraceException        ; TRACE exception
-	dc.l LineAEmulator        ; Line-A emulator
-	dc.l LineFEmulator        ; Line-F emulator (12)
+	dc.l errBus
+	dc.l errAddress
+	dc.l errIllegal
+	dc.l errZeroDiv
+	dc.l errChkInst
+	dc.l errTrapV
+	dc.l errPriViol
+	dc.l errTrace
+	dc.l errLine1010
+	dc.l errLine1111
 	dc.l Vector13        ; Unused (reserved)
 	dc.l Vector14        ; Unused (reserved)
 	dc.l Vector15        ; Unused (reserved)
@@ -683,43 +681,37 @@ VDPInitValues_End:
 	
 	; Z80 instructions (not the sound driver; that gets loaded later)
 Z80StartupCodeBegin: ; loc_2CA:
-    if (*)+$26 < $10000
-    save
-    CPU Z80 ; start assembling Z80 code
-    phase 0 ; pretend we're at address 0
-	xor	a	; clear a to 0
-	ld	bc,((Z80_RAM_End-Z80_RAM)-zStartupCodeEndLoc)-1 ; prepare to loop this many times
-	ld	de,zStartupCodeEndLoc+1	; initial destination address
-	ld	hl,zStartupCodeEndLoc	; initial source address
-	ld	sp,hl	; set the address the stack starts at
-	ld	(hl),a	; set first byte of the stack to 0
-	ldir		; loop to fill the stack (entire remaining available Z80 RAM) with 0
-	pop	ix	; clear ix
-	pop	iy	; clear iy
-	ld	i,a	; clear i
-	ld	r,a	; clear r
-	pop	de	; clear de
-	pop	hl	; clear hl
-	pop	af	; clear af
-	ex	af,af'	; swap af with af'
-	exx		; swap bc/de/hl with their shadow registers too
-	pop	bc	; clear bc
-	pop	de	; clear de
-	pop	hl	; clear hl
-	pop	af	; clear af
-	ld	sp,hl	; clear sp
-	di		; clear iff1 (for interrupt handler)
-	im	1	; interrupt handling mode = 1
-	ld	(hl),0E9h ; replace the first instruction with a jump to itself
-	jp	(hl)	  ; jump to the first instruction (to stay there forever)
-zStartupCodeEndLoc:
-    dephase ; stop pretending
-	restore
-    padding off ; unfortunately our flags got reset so we have to set them again...
-    else ; due to an address range limitation I could work around but don't think is worth doing so:
-	message "Warning: using pre-assembled Z80 startup code."
-	dc.w $AF01,$D91F,$1127,$0021,$2600,$F977,$EDB0,$DDE1,$FDE1,$ED47,$ED4F,$D1E1,$F108,$D9C1,$D1E1,$F1F9,$F3ED,$5636,$E9E9
-    endif
+	; using pre-assembled Z80 startup code. compiles as:
+
+;	xor	a	; clear a to 0
+;	ld	bc,((Z80_RAM_End-Z80_RAM)-zStartupCodeEndLoc)-1 ; prepare to loop this many times
+;	ld	de,zStartupCodeEndLoc+1	; initial destination address
+;	ld	hl,zStartupCodeEndLoc	; initial source address
+;	ld	sp,hl	; set the address the stack starts at
+;	ld	(hl),a	; set first byte of the stack to 0
+;	ldir		; loop to fill the stack (entire remaining available Z80 RAM) with 0
+;	pop	ix	; clear ix
+;	pop	iy	; clear iy
+;	ld	i,a	; clear i
+;	ld	r,a	; clear r
+;	pop	de	; clear de
+;	pop	hl	; clear hl
+;	pop	af	; clear af
+;	ex	af,af'	; swap af with af'
+;	exx		; swap bc/de/hl with their shadow registers too
+;	pop	bc	; clear bc
+;	pop	de	; clear de
+;	pop	hl	; clear hl
+;	pop	af	; clear af
+;	ld	sp,hl	; clear sp
+;	di		; clear iff1 (for interrupt handler)
+;	im	1	; interrupt handling mode = 1
+;	ld	(hl),0E9h ; replace the first instruction with a jump to itself
+;	jp	(hl)	  ; jump to the first instruction (to stay there forever)
+; zStartupCodeEndLoc:
+
+	dc.w $AF01,$D91F,$1127,$0021,$2600,$F977,$EDB0,$DDE1,$FDE1
+	dc.w $ED47,$ED4F,$D1E1,$F108,$D9C1,$D1E1,$F1F9,$F3ED,$5636,$E9E9
 Z80StartupCodeEnd:
 
 	dc.w	$8104	; value for VDP display mode
@@ -1052,9 +1044,9 @@ return_938:
 
 WaitForVint:
 	sf	(V_Int_Done).w
--
+.local
 	tst.b	(V_Int_Done).w
-	beq.s	-
+	beq.s	.local
 	tst.b	($FFFFFC80).w
 	beq.w	return_954
 	move.w	#$4C9,d0
@@ -1073,8 +1065,8 @@ return_954:
 Do_Nothing:
 	move.w	d0,-(sp)
 	move.w	#$264,d0
--
-	dbf	d0,-
+.local
+	dbf	d0,.local
 	move.w	(sp)+,d0
 	rts
 ; End of function Do_Nothing
@@ -1093,11 +1085,11 @@ loc_964:
 ;970
 Palette_to_VRAM:
 	tst.b	(PaletteToDMA_Flag).w
-	bne.s	+
+	bne.s	.local
 	jsr	(j__gemsholdz80).l
 	dma68kToVDP	Palette_Buffer,$0000,$80,CRAM
 	jsr	(j__gemsreleasez80).l
-+
+.local
 	rts
 
 ; =============== S U B	R O U T	I N E =======================================
@@ -1107,9 +1099,9 @@ Init_RNG:
 	lea	(RNG_RAM_Start).w,a0
 	lea	RNG_Seed(pc),a1
 	moveq	#RNG_RAM_Length-1,d0
--
+.local
 	move.b	(a1)+,(a0)+
-	dbf	d0,-
+	dbf	d0,.local
 	move.w	#-RNG_RAM_Length,(RNG_Offset).w
 	rts
 ; End of function Init_RNG
@@ -1184,15 +1176,15 @@ Get_RandomNumber_byte:
 	lea	(RNG_RAM_End).w,a0
 	move.w	(RNG_Offset).w,d7
 	addq.w	#1,d7
-	bne.s	+
+	bne.s	.local
 	moveq	#-RNG_RAM_Length,d7
-+
+.local
 	move.w	d7,(RNG_Offset).w
 	lea	(a0,d7.w),a1
 	addi.w	#$1F,d7
-	bcc.s	+
+	bcc.s	.local2
 	subi.w	#RNG_RAM_Length,d7
-+
+.local2
 	lea	(a0,d7.w),a0
 	moveq	#0,d7
 	move.b	(a1),d7
@@ -1562,12 +1554,12 @@ Initialize_ObjectSlots:
 	move.l	a0,(Addr_NextFreeObjectSlot).w
 	moveq	#$30,d0
 
--
+.local
 	lea	$74(a0),a1
-	_move.l	a1,0(a0)
+	move.l	a1,0(a0)
 	move.l	a1,a0
-	dbf	d0,-
-	_clr.l	0(a0)
+	dbf	d0,.local
+	clr.l	0(a0)
 	lea	(Addr_FirstObjectSlot).w,a0
 	clr.l	(a0)
 	move.l	a0,(Addr_CurrentObject).w
@@ -1584,14 +1576,14 @@ Allocate_ObjectSlot:
 	movem.l	d4-d6/a1,-(sp)
 	move.w	a0,d6
 	move.l	(Addr_NextFreeObjectSlot).w,a0
-	_move.l	0(a0),(Addr_NextFreeObjectSlot).w
+	move.l	0(a0),(Addr_NextFreeObjectSlot).w
 	move.l	a0,a1
 
 	; clear object data
 	moveq	#0,d5
 	move.w	#$1C,d4
--	move.l	d5,(a1)+
-	dbf	d4,-
+.local	move.l	d5,(a1)+
+	dbf	d4,.local
 
 	move.w	#1,8(a0)
 	addq.w	#1,(Number_Objects).w
@@ -1600,7 +1592,7 @@ Allocate_ObjectSlot:
 	move.w	d6,$E(a0)
 
 loc_DE0:
-	_move.l	0(a1),d4
+	move.l	0(a1),d4
 	beq.s	loc_DF2
 	move.l	a1,d5
 	move.l	d4,a1
@@ -1609,8 +1601,8 @@ loc_DE0:
 	move.l	d5,a1
 
 loc_DF2:
-	_move.l	0(a1),0(a0)
-	_move.l	a0,0(a1)
+	move.l	0(a1),0(a0)
+	move.l	a0,0(a1)
 	movem.l	(sp)+,d4-d6/a1
 	rts
 ; End of function Allocate_ObjectSlot
@@ -1718,7 +1710,7 @@ Deallocate_ObjectSlot:
 
 	; find our current object in the list
 loc_EA2:
-	_move.l	0(a0),d0	; d0 = next object in list
+	move.l	0(a0),d0	; d0 = next object in list
 	beq.s	loc_EF0
 	cmp.l	d0,a5	; have we found our object?
 	beq.s	loc_EB0	; yes
@@ -1728,25 +1720,25 @@ loc_EA2:
 ; remove current object from list
 ; a0 is the object in the list before a5 (current object)
 loc_EB0:
-	_move.l	0(a5),0(a0)
-	_move.l	(Addr_NextFreeObjectSlot).w,0(a5)
+	move.l	0(a5),0(a0)
+	move.l	(Addr_NextFreeObjectSlot).w,0(a5)
 	move.l	a5,(Addr_NextFreeObjectSlot).w
 	subq.w	#1,(Number_Objects).w
 	move.l	$36(a5),d0
-	beq.s	+
+	beq.s	.local
 	move.l	d0,a3
 	bsr.w	Deallocate_GfxObject
-+
+.local
 	move.l	$3A(a5),d0
-	beq.s	+
+	beq.s	.local2
 	move.l	d0,a3
 	bsr.w	Deallocate_GfxObject
-+
+.local2
 	move.l	$3E(a5),d0
-	beq.s	+
+	beq.s	.local3
 	move.l	d0,a3
 	bsr.w	Deallocate_GfxObject
-+
+.local3
 	move.l	a0,a5
 	movem.l	(sp)+,d0/a0/a3
 	rts
@@ -1769,7 +1761,7 @@ loc_EFE:
 	lea	(Addr_FirstObjectSlot).w,a5
 
 loc_F02:
-	_move.l	0(a5),d0
+	move.l	0(a5),d0
 	beq.s	loc_F14
 	move.l	d0,a5
 	cmp.l	(Addr_CurrentObject).w,a5
@@ -1801,12 +1793,12 @@ Initialize_GfxObjectSlots:
 	lea	(GfxObject_RAM).l,a0
 	move.l	a0,(Addr_NextFreeGfxObjectSlot).w
 	moveq	#$4B,d0
--
+.local
 	lea	$4C(a0),a1
-	_move.l	a1,0(a0)
+	move.l	a1,0(a0)
 	move.l	a1,a0
-	dbf	d0,-
-	_clr.l	0(a0)
+	dbf	d0,.local
+	clr.l	0(a0)
 	clr.l	(Addr_FirstGfxObjectSlot).w
 	clr.w	(Number_GfxObjects).w
 	clr.l	(Addr_GfxObject_KidProjectile).w
@@ -1846,14 +1838,14 @@ Allocate_GfxObjectSlot:
 	movem.l	d4-d6/a4,-(sp)
 	move.l	a3,d5
 	move.l	(Addr_NextFreeGfxObjectSlot).w,a3	; get next available object slot
-	_move.l	0(a3),(Addr_NextFreeGfxObjectSlot).w	; next object in the list is available
+	move.l	0(a3),(Addr_NextFreeGfxObjectSlot).w	; next object in the list is available
 	move.l	a3,a4
 
 	; clear the data from the object slot
 	moveq	#0,d6
 	move.w	#$12,d4
--	move.l	d6,(a4)+
-	dbf	d4,-
+.local	move.l	d6,(a4)+
+	dbf	d4,.local
 
 	move.w	d5,8(a3)
 	beq.s	loc_FBE
@@ -1895,7 +1887,7 @@ loc_FBE:
 	move.w	$A(a3),d5
 
 loc_FD4:
-	_move.l	0(a4),d4
+	move.l	0(a4),d4
 	beq.s	loc_FE6
 	move.l	a4,d6
 	move.l	d4,a4
@@ -1904,8 +1896,8 @@ loc_FD4:
 	move.l	d6,a4
 
 loc_FE6:
-	_move.l	0(a4),0(a3)
-	_move.l	a3,0(a4)
+	move.l	0(a4),0(a3)
+	move.l	a3,0(a4)
 	movem.l	(sp)+,d4-d6/a4
 	rts
 ; End of function Allocate_GfxObjectSlot
@@ -1919,23 +1911,23 @@ sub_FF6:
 	lea	(Addr_FirstGfxObjectSlot).w,a4
 
 loc_FFE:
-	_cmp.l	0(a4),a3
+	cmp.l	0(a4),a3
 	beq.s	loc_100E
 
 loc_1004:
-	_move.l	0(a4),d4
+	move.l	0(a4),d4
 	beq.s	loc_1038
 	move.l	d4,a4
 	bra.s	loc_FFE
 ; ---------------------------------------------------------------------------
 
 loc_100E:
-	_move.l	0(a3),0(a4)
+	move.l	0(a3),0(a4)
 	lea	(Addr_FirstGfxObjectSlot).w,a4
 	move.w	$A(a3),d5
 
 loc_101C:
-	_move.l	0(a4),d4
+	move.l	0(a4),d4
 	beq.s	loc_102E
 	move.l	a4,d6
 	move.l	d4,a4
@@ -1944,8 +1936,8 @@ loc_101C:
 	move.l	d6,a4
 
 loc_102E:
-	_move.l	0(a4),0(a3)
-	_move.l	a3,0(a4)
+	move.l	0(a4),0(a3)
+	move.l	a3,0(a4)
 
 loc_1038:
 	movem.l	(sp)+,d4-d6/a4
@@ -2039,8 +2031,8 @@ loc_10BA:
 ; ---------------------------------------------------------------------------
 
 loc_10C6:
-	_move.l	0(a3),0(a0)
-	_move.l	(Addr_NextFreeGfxObjectSlot).w,0(a3)
+	move.l	0(a3),0(a0)
+	move.l	(Addr_NextFreeGfxObjectSlot).w,0(a3)
 	move.l	a3,(Addr_NextFreeGfxObjectSlot).w
 	subq.w	#1,(Number_GfxObjects).w
 	move.w	8(a3),d0
@@ -2451,7 +2443,7 @@ return_13BE:
 
 sub_13C0:
 	move.w	d3,6(a0)
-	_move.w	d7,0(a0)
+	move.w	d7,0(a0)
 	move.b	d0,2(a0)
 	addq.b	#1,(Number_Sprites).w
 	move.b	(Number_Sprites).w,3(a0)
@@ -2516,7 +2508,7 @@ GfxObjects_MoveAndAnimate:
 	lea	(Addr_FirstGfxObjectSlot).w,a3
 
 loc_144E:
-	_move.l	0(a3),d0
+	move.l	0(a3),d0
 	beq.s	return_1460
 	move.l	d0,a3
 	bsr.w	GfxObject_Move
@@ -2532,7 +2524,7 @@ loc_1462:
 	lea	(Addr_FirstGfxObjectSlot).w,a3
 
 loc_1466:
-	_move.l	0(a3),d0
+	move.l	0(a3),d0
 	beq.s	return_1460
 	move.l	d0,a3
 	cmpi.w	#2,8(a3)
@@ -2562,7 +2554,7 @@ Make_SpritesFromGfxObjects:
 	lea	(Addr_FirstGfxObjectSlot).w,a3
 
 loc_14A4:
-	_move.l	0(a3),d0
+	move.l	0(a3),d0
 	beq.s	loc_14B2
 	move.l	d0,a3
 	jsr	(j_Make_SpriteFromGfxObject).w
@@ -2856,14 +2848,14 @@ GfxObjects_Collision_SubBoxLoop:
 	move.w	(a4)+,d0	; first entry 0 mean there's no collision
 	beq.s	GfxObjects_Collision_Loop
 	tst.b	$16(a2)		; sprite x-flipped?
-	bne.s	+
+	bne.s	.local
 	add.w	$1A(a2),d0	; d0 = left edge of hitbox
 	move.w	d0,d1
 	add.w	(a4)+,d1	; d1 = right edge of hitbox
 	bra.w	GfxObjects_Collision_ChkBoundaries
 
 ;loc_1734
-+	; sprite is flipped
+.local	; sprite is flipped
 	neg.w	d0
 	add.w	$1A(a2),d0
 	move.w	d0,d1		; d1 = right edge of hitbox
@@ -2918,10 +2910,10 @@ GfxObjects_Collision_Tiles_RowLoop:
 
 ;loc_17A0
 GfxObjects_Collision_Tiles_Continue:
-	addi.w	#$10,d2
+	add.l	#8,d2
 	dbf	d4,GfxObjects_Collision_Tiles_RowLoop
 
-	addi.w	#$10,d3
+	add.l	#8,d3
 	add.w	(Level_width_tiles).w,a3
 	subq.w	#2,a3
 	suba.w	d5,a3
@@ -3046,7 +3038,7 @@ GfxObjects_Collision_Solid_MovingRightUp:
 	andi.w	#$7000,d3
 	cmpi.w	#$6000,d3
 	beq.w	loc_1966
-	addi.w	#$10,d2
+	add.l	#8,d2
 	sub.w	d1,d4
 	sub.w	d2,d5
 	muls.w	d0,d5
@@ -3071,7 +3063,7 @@ GfxObjects_Collision_Solid_MovingLeft:
 	andi.w	#$7000,d4
 	cmpi.w	#$6000,d4
 	beq.w	loc_19BA
-	addi.w	#$10,d1
+	add.l	#8,d1
 	sub.w	d1,d3
 	sub.w	d2,d6
 	muls.w	d0,d6
@@ -3092,8 +3084,8 @@ GfxObjects_Collision_Solid_MovingLeftUp:
 	andi.w	#$7000,d4
 	cmpi.w	#$6000,d4
 	beq.w	loc_19BA
-	addi.w	#$10,d1
-	addi.w	#$10,d2
+	add.l	#8,d1
+	add.l	#8,d2
 	sub.w	d1,d3
 	sub.w	d2,d5
 	muls.w	d0,d5
@@ -3155,7 +3147,7 @@ loc_19D2:
 	beq.w	loc_1A00
 	add.w	(a1)+,d7
 	add.w	(a1)+,d7
-	addi.w	#$10,d7
+	add.l	#8,d7
 	move.w	d7,$1A(a2)
 	clr.w	$1C(a2)
 	bra.w	GfxObjects_Collision_Loop
@@ -3163,7 +3155,7 @@ loc_19D2:
 
 loc_1A00:
 	sub.w	(a1)+,d7
-	addi.w	#$10,d7
+	add.l	#8,d7
 	move.w	d7,$1A(a2)
 	clr.w	$1C(a2)
 	bra.w	GfxObjects_Collision_Loop
@@ -3211,7 +3203,7 @@ loc_1A6C:
 	move.w	2(sp),d7
 	addq.w	#4,a1
 	sub.w	(a1)+,d7
-	addi.w	#$10,d7
+	add.l	#8,d7
 	move.w	d7,$1E(a2)
 	clr.w	$20(a2)
 	bra.w	GfxObjects_Collision_Loop
@@ -3219,25 +3211,25 @@ loc_1A6C:
 ;loc_1A94
 GfxObjects_Collision_ChkUpSlope:
 	tst.l	$2A(a2)
-	bpl.w	+
+	bpl.w	.local
 	move.l	$26(a2),d7
 	bmi.w	GfxObjects_Collision_Loop
 	neg.l	d7
 	cmp.l	$2A(a2),d7
 	bgt.w	GfxObjects_Collision_Loop
-+
+.local
 	move.w	#colid_slopeup,$38(a2)
 	bra.w	GfxObjects_Collision_Loop
 ; ---------------------------------------------------------------------------
 ;loc_1AB8
 GfxObjects_Collision_ChkDownSlope:
 	tst.l	$2A(a2)
-	bpl.w	+
+	bpl.w	.local
 	move.l	$26(a2),d7
 	bpl.w	GfxObjects_Collision_Loop
 	cmp.l	$2A(a2),d7
 	bgt.w	GfxObjects_Collision_Loop
-+
+.local
 	move.w	#colid_slopedown,$38(a2)
 	bra.w	GfxObjects_Collision_Loop
 ; ---------------------------------------------------------------------------
@@ -3875,7 +3867,7 @@ loc_2056:
 
 loc_2074:
 	add.w	d3,a1
-	addi.w	#$10,d2
+	add.l	#8,d2
 	move.w	(a1),d0
 	bsr.w	j_Palette_to_VRAM0
 	beq.s	loc_2074
@@ -4167,12 +4159,12 @@ Initialize_Platforms:
 	lea	($FFFFEDBA).w,a0
 	move.w	a0,(Addr_NextFreePlatformSlot).w
 	moveq	#$10,d0
--
+.local
 	lea	$22(a0),a1
-	_move.w	a1,0(a0)
+	move.w	a1,0(a0)
 	move.w	a1,a0
-	dbf	d0,-
-	_clr.w	0(a0)
+	dbf	d0,.local
+	clr.w	0(a0)
 	clr.w	(Addr_FirstPlatformSlot).w
 	clr.w	(Number_Platforms).w
 	clr.w	(PlatformLoader_Offset).w
@@ -4212,8 +4204,8 @@ Allocate_PlatformSlot:
 	move.w	(Addr_NextFreePlatformSlot).w,d7
 	beq.w	loc_23AE
 	move.w	d7,a3
-	_move.w	0(a3),(Addr_NextFreePlatformSlot).w
-	_move.w	(Addr_FirstPlatformSlot).w,0(a3)
+	move.w	0(a3),(Addr_NextFreePlatformSlot).w
+	move.w	(Addr_FirstPlatformSlot).w,0(a3)
 	move.w	a3,(Addr_FirstPlatformSlot).w
 	addq.w	#1,(Number_Platforms).w
 	rts
@@ -4234,7 +4226,7 @@ Deallocate_PlatformSlot:
 	lea	(Addr_FirstPlatformSlot).w,a4
 
 loc_23BA:
-	_move.w	0(a4),d7
+	move.w	0(a4),d7
 	beq.w	loc_23E4
 	cmp.w	d7,a3
 	beq.w	loc_23CC
@@ -4243,8 +4235,8 @@ loc_23BA:
 ; ---------------------------------------------------------------------------
 
 loc_23CC:
-	_move.w	0(a3),0(a4)
-	_move.w	(Addr_NextFreePlatformSlot).w,0(a3)
+	move.w	0(a3),0(a4)
+	move.w	(Addr_NextFreePlatformSlot).w,0(a3)
 	move.w	a3,(Addr_NextFreePlatformSlot).w
 	subq.w	#1,(Number_Platforms).w
 	move.l	(sp)+,a4
@@ -4270,7 +4262,7 @@ loc_23F2:
 	lea	(Addr_FirstPlatformSlot).w,a2
 
 Execute_ScriptedPlatforms_Loop:
-	_move.w	0(a2),d7	; next one in list
+	move.w	0(a2),d7	; next one in list
 	beq.w	return_2442	; quit if it was last one
 	move.w	d7,a2		; next one becomes current one
 	tst.b	$1F(a2)		; scripted or special platform?
@@ -4327,7 +4319,7 @@ Make_SpritesFromPlatforms:
 	move.l	(Addr_NextSpriteSlot).w,a0
 
 loc_244C:
-	_move.w	0(a2),d7
+	move.w	0(a2),d7
 	beq.w	loc_256E
 	move.w	d7,a2
 	move.w	2(a2),d7
@@ -4390,9 +4382,9 @@ loc_24D4:
 
 loc_24D8:
 	bsr.w	loc_2548
-	addi.w	#$10,d4
+	add.l	#8,d4
 	dbf	d3,loc_24D8
-	addi.w	#$10,d6
+	add.l	#8,d6
 	dbf	d1,loc_24D4
 	bra.w	loc_244C
 ; ---------------------------------------------------------------------------
@@ -4401,7 +4393,7 @@ loc_24F0:
 	move.w	d7,d4
 	bsr.w	loc_2548
 	addq.w	#4,a4
-	addi.w	#$10,d4
+	add.l	#8,d4
 	subq.w	#1,d0
 	beq.w	loc_2512
 	move.w	d0,d1
@@ -4409,7 +4401,7 @@ loc_24F0:
 
 loc_2506:
 	bsr.w	loc_2548
-	addi.w	#$10,d4
+	add.l	#8,d4
 	dbf	d1,loc_2506
 
 loc_2512:
@@ -4422,7 +4414,7 @@ loc_251C:
 	move.w	d7,d4
 	bsr.w	loc_2548
 	addq.w	#4,a4
-	addi.w	#$10,d6
+	add.l	#8,d6
 	subq.w	#1,d1
 	beq.w	loc_253E
 	move.w	d1,d0
@@ -4430,7 +4422,7 @@ loc_251C:
 
 loc_2532:
 	bsr.w	loc_2548
-	addi.w	#$10,d6
+	add.l	#8,d6
 	dbf	d0,loc_2532
 
 loc_253E:
@@ -4441,7 +4433,7 @@ loc_253E:
 
 loc_2548:
 	move.w	d4,6(a0)
-	_move.w	d6,0(a0)
+	move.w	d6,0(a0)
 	move.w	d2,d5
 	addq.b	#1,(Number_Sprites).w
 	add.b	(Number_Sprites).w,d5
@@ -4482,13 +4474,13 @@ loc_2590:
 	move.w	(Kid_hitbox_bottom).w,d3
 
 loc_25A0:
-	_move.w	0(a2),d4
+	move.w	0(a2),d4
 	beq.w	loc_2720
 	move.w	d4,a2
 	move.w	2(a2),d4
 	cmp.w	d1,d4
 	bgt.s	loc_25A0
-	_move.w	d4,0(sp)
+	move.w	d4,0(sp)
 	add.w	$1A(a2),d4
 	cmp.w	d0,d4
 	blt.s	loc_25A0
@@ -4502,9 +4494,9 @@ loc_25A0:
 	blt.s	loc_25A0
 	move.w	d4,6(sp)
 	; left/right/top/bottom boundary of platform now on stack
-	_cmp.w	0(sp),d0
+	cmp.w	0(sp),d0
 	bgt.w	loc_25EE
-	_move.w	0(sp),d7
+	move.w	0(sp),d7
 	sub.w	d1,d7
 	subq.w	#1,d7
 	bra.w	loc_261E
@@ -4513,7 +4505,7 @@ loc_25A0:
 loc_25EE:
 	cmp.w	2(sp),d1
 	bgt.w	loc_2616
-	_move.w	0(sp),d5
+	move.w	0(sp),d5
 	sub.w	d1,d5
 	subq.w	#1,d5
 	move.w	2(sp),d6
@@ -4650,7 +4642,7 @@ sub_2728:
 	lea	(Addr_FirstPlatformSlot).w,a2
 
 loc_272C:
-	_move.w	0(a2),d7
+	move.w	0(a2),d7
 	beq.w	loc_2740
 	move.w	d7,a2
 	cmp.w	$20(a2),d5
@@ -4714,7 +4706,7 @@ loc_2762:
 	clr.l	$A(a3)
 	clr.l	$E(a3)
 	move.w	#1,x_direction(a3)
-	_move.w	0(a4),d7
+	move.w	0(a4),d7
 	asl.w	#4,d7
 	move.w	d7,2(a3)	; load x pos from platform layout
 	clr.w	4(a3)
@@ -4730,7 +4722,7 @@ loc_2762:
 	asl.w	#4,d6
 	subq.w	#1,d6
 	andi.w	#$F0,d7
-	addi.w	#$10,d7
+	add.l	#8,d7
 	subq.w	#1,d7
 	move.w	d7,x_pos(a3)	; x size in pixels
 	move.w	d6,$1C(a3)	; y size in pixels
@@ -4927,8 +4919,8 @@ loc_2994:
 	add.w	(a4,d0.w),d5
 	move.w	d5,4(a1)
 	move.w	(a6,d0.w),8(a1)
-	_move.w	(a2,d0.w),0(a1)
-	addi.w	#$10,a1
+	move.w	(a2,d0.w),0(a1)
+	add.w	#$10,a1
 	dbf	d7,loc_2994
 	movem.l	(sp)+,a6
 	subq.w	#1,($FFFFFAA0).w
@@ -5067,11 +5059,11 @@ loc_2A56:
 	move.w	(Camera_X_pos).w,d2
 	move.w	#$80,d3
 	move.l	#$36B0,d7
-	_move.l	0(a1),d6
+	move.l	0(a1),d6
 	add.l	d6,4(a1)
 	move.l	8(a1),d5
 	add.l	d5,$C(a1)
-	_add.l	d7,0(a1)
+	add.l	d7,0(a1)
 	move.w	4(a1),d6
 	sub.w	d1,d6
 	cmpi.w	#$FF9C,d6
@@ -5090,12 +5082,12 @@ loc_2A56:
 	move.w	d0,(a2)+
 	move.w	d4,(a2)+
 	move.w	d5,(a2)+
-	addi.w	#$10,a1
-	_move.l	0(a1),d6
+	add.w	#$10,a1
+	move.l	0(a1),d6
 	add.l	d6,4(a1)
 	move.l	8(a1),d5
 	add.l	d5,$C(a1)
-	_add.l	d7,0(a1)
+	add.l	d7,0(a1)
 	move.w	4(a1),d6
 	sub.w	d1,d6
 	add.w	d3,d6
@@ -5107,12 +5099,12 @@ loc_2A56:
 	move.w	d0,(a2)+
 	move.w	d4,(a2)+
 	move.w	d5,(a2)+
-	addi.w	#$10,a1
-	_move.l	0(a1),d6
+	add.w	#$10,a1
+	move.l	0(a1),d6
 	add.l	d6,4(a1)
 	move.l	8(a1),d5
 	add.l	d5,$C(a1)
-	_add.l	d7,0(a1)
+	add.l	d7,0(a1)
 	move.w	4(a1),d6
 	sub.w	d1,d6
 	add.w	d3,d6
@@ -5124,12 +5116,12 @@ loc_2A56:
 	move.w	d0,(a2)+
 	move.w	d4,(a2)+
 	move.w	d5,(a2)+
-	addi.w	#$10,a1
-	_move.l	0(a1),d6
+	add.w	#$10,a1
+	move.l	0(a1),d6
 	add.l	d6,4(a1)
 	move.l	8(a1),d5
 	add.l	d5,$C(a1)
-	_add.l	d7,0(a1)
+	add.l	d7,0(a1)
 	move.w	4(a1),d6
 	sub.w	d1,d6
 	add.w	d3,d6
@@ -5141,12 +5133,12 @@ loc_2A56:
 	move.w	d0,(a2)+
 	move.w	d4,(a2)+
 	move.w	d5,(a2)+
-	addi.w	#$10,a1
-	_move.l	0(a1),d6
+	add.w	#$10,a1
+	move.l	0(a1),d6
 	add.l	d6,4(a1)
 	move.l	8(a1),d5
 	add.l	d5,$C(a1)
-	_add.l	d7,0(a1)
+	add.l	d7,0(a1)
 	move.w	4(a1),d6
 	sub.w	d1,d6
 	add.w	d3,d6
@@ -5215,12 +5207,12 @@ SoftPlatform_WaitLoop:
 	bne.s	SoftPlatform_WaitLoop
 	; Kid is currently standing on THIS platform
 	cmpi.w	#Iron_Knight,(Current_Helmet).w
-	beq.w	+
+	beq.w	.local
 	asr.l	#1,d1	; for everything but iron knight, divide by 2
 	cmpi.w	#Micromax,(Current_Helmet).w
-	bne.w	+
+	bne.w	.local
 	asr.l	#1,d1	; for micromax, divide by 4
-+
+.local
 	move.l	d1,$E(a3)	; assign as platform's y vel
 
 SoftPlatform_BounceLoop:
@@ -5229,9 +5221,9 @@ SoftPlatform_BounceLoop:
 	move.l	$E(a3),d7
 	subi.l	#$7000,d7
 	cmpi.l	#-$18000,d7
-	bgt.w	+
+	bgt.w	.local
 	move.l	#-$18000,d7
-+
+.local
 	move.l	d7,$E(a3)
 	cmp.w	6(a3),d0	;compare to original y pos
 	blt.s	SoftPlatform_BounceLoop
@@ -5286,13 +5278,13 @@ TrapPlatformDown_MoveLoop:
 	move.l	$E(a3),d7
 	addi.l	#$4000,d7
 	cmpi.l	#$40000,d7
-	blt.w	+
+	blt.w	.local
     if minorBugFixes = 0
 	move.l	#$20000,d7	; this is a bug. Should be $40000
     else
 	move.l	#$40000,d7
     endif
-+
+.local
 	move.l	d7,$E(a3)
 	move.w	6(a3),d7
 	sub.w	$1E(a2),d7
@@ -5344,9 +5336,9 @@ loc_4230:
 	move.l	$E(a3),d7
 	subi.l	#$4000,d7
 	cmpi.l	#-$40000,d7
-	bgt.w	+
+	bgt.w	.local
 	move.l	#-$40000,d7
-+
+.local
 	move.l	d7,$E(a3)
 	move.w	6(a3),d7
 	sub.w	$1E(a2),d7
@@ -5385,10 +5377,10 @@ PlatformChain_Init:
 	addq.w	#1,d6
 	move.w	2(a0),d4	; x pos
 	moveq	#5,d5		; load 6 new platform objects
--
+.local
 	add.w	d6,d4
 	bsr.w	PlatformChain_LoadPlatform
-	dbf	d5,-
+	dbf	d5,.local
 	bsr.w	PlatformChain_SetMoveDown
 	moveq	#$3C,d0
 
@@ -5416,10 +5408,10 @@ PlatformChain_UpLoop:
 PlatformChain_Delete:
 	lea	$44(a5),a4
 	moveq	#6,d6
--
+.local
 	move.w	(a4)+,a3
 	bsr.w	Deallocate_PlatformSlot
-	dbf	d6,-
+	dbf	d6,.local
 	jmp	Delete_CurrentObject(pc)
 ; End of function PlatformChain_Init
 
@@ -5431,10 +5423,10 @@ PlatformChain_SetMoveDown:
 	lea	$44(a5),a4
 	lea	PlatformChain_YVelocities(pc),a2
 	moveq	#6,d6
--
+.local
 	move.w	(a4)+,a3
 	move.l	(a2)+,$E(a3)
-	dbf	d6,-
+	dbf	d6,.local
 	rts
 ; End of function PlatformChain_SetMoveDown
 
@@ -5446,12 +5438,12 @@ PlatformChain_SetMoveUp:
 	lea	$44(a5),a4
 	lea	PlatformChain_YVelocities(pc),a2
 	moveq	#6,d6
--
+.local
 	move.w	(a4)+,a3
 	move.l	(a2)+,d7
 	neg.l	d7
 	move.l	d7,$E(a3)
-	dbf	d6,-
+	dbf	d6,.local
 	rts
 ; End of function PlatformChain_SetMoveUp
 
@@ -5479,11 +5471,11 @@ PlatformChain_LoadPlatform:
 PlatformChain_MovePlatforms:
 	lea	$44(a5),a4
 	moveq	#6,d6
--
+.local
 	move.w	(a4)+,a3
 	move.l	$E(a3),d7
 	add.l	d7,6(a3)
-	dbf	d6,-
+	dbf	d6,.local
 	rts
 ; End of function PlatformChain_MovePlatforms
 
@@ -5757,19 +5749,19 @@ loc_468C:
 ; End of function sub_44DC
 
 ; ---------------------------------------------------------------------------
-ArtUnc_4692:   binclude    "ingame/artunc/Life_icon_(3_frames).bin"
-ArtUnc_4812:   binclude    "ingame/artunc/Clock_icon_(3_frames).bin"
-ArtUnc_4992:   binclude    "ingame/artunc/Coin_continue_icon_(6_frames).bin"
+ArtUnc_4692:   incbin    "ingame/artunc/Life_icon_(3_frames).bin"
+ArtUnc_4812:   incbin    "ingame/artunc/Clock_icon_(3_frames).bin"
+ArtUnc_4992:   incbin    "ingame/artunc/Coin_continue_icon_(6_frames).bin"
 	align_dmasafe	(6*ANIART_FLAG_SIZE)
-ArtUnc_4C92:   binclude    "ingame/artunc/End_of_level_Flag_(6_frames).bin"
-ArtComp_5B92:   binclude    "ingame/artcomp/Horizontal_platform.bin"
-ArtComp_5C83:   binclude    "ingame/artcomp/Vertical_platform.bin"
+ArtUnc_4C92:   incbin    "ingame/artunc/End_of_level_Flag_(6_frames).bin"
+ArtComp_5B92:   incbin    "ingame/artcomp/Horizontal_platform.bin"
+ArtComp_5C83:   incbin    "ingame/artcomp/Vertical_platform.bin"
 	align	2
 ; =============== S U B	R O U T	I N E =======================================
 ANIART_DIAMOND_SIZE	= $200
 
 sub_5D4A:
-	addi.l	#off_7B0AC,a0
+	add.l	#off_7B0AC,a0
 	move.l	(a0),d1
 	addq.l	#2,d1		; d1 = DMA source address
 	jsr	(j__gemsholdz80).l
@@ -5911,7 +5903,7 @@ loc_5E94:
 
 loc_5EB2:
 	move.w	d6,6(a0)
-	_move.w	d7,0(a0)
+	move.w	d7,0(a0)
 	move.w	#$A00,d5
 	addq.b	#1,(Number_Sprites).w
 	add.b	(Number_Sprites).w,d5
@@ -5920,7 +5912,7 @@ loc_5EB2:
 	lea	8(a0),a0
 	addi.w	#$18,d7
 	move.w	d6,6(a0)
-	_move.w	d7,0(a0)
+	move.w	d7,0(a0)
 	move.w	#$A00,d5
 	addq.b	#1,(Number_Sprites).w
 	add.b	(Number_Sprites).w,d5
@@ -5937,7 +5929,7 @@ loc_5EB2:
 
 loc_5F0C:
 	move.w	d6,6(a0)
-	_move.w	d7,0(a0)
+	move.w	d7,0(a0)
 	move.w	#$A00,d5
 	addq.b	#1,(Number_Sprites).w
 	add.b	(Number_Sprites).w,d5
@@ -5948,7 +5940,7 @@ loc_5F0C:
 	lea	8(a0),a0
 	addi.w	#$18,d7
 	move.w	d6,6(a0)
-	_move.w	d7,0(a0)
+	move.w	d7,0(a0)
 	move.w	#$A00,d5
 	addq.b	#1,(Number_Sprites).w
 	add.b	(Number_Sprites).w,d5
@@ -5967,7 +5959,7 @@ return_5F68:
 
 loc_5F6A:
 	move.w	d6,6(a0)
-	_move.w	d7,0(a0)
+	move.w	d7,0(a0)
 	move.w	#$A00,d5
 	addq.b	#1,(Number_Sprites).w
 	add.b	(Number_Sprites).w,d5
@@ -5978,7 +5970,7 @@ loc_5F6A:
 	lea	8(a0),a0
 	addi.w	#$18,d7
 	move.w	d6,6(a0)
-	_move.w	d7,0(a0)
+	move.w	d7,0(a0)
 	move.w	#$A00,d5
 	addq.b	#1,(Number_Sprites).w
 	add.b	(Number_Sprites).w,d5
@@ -5995,7 +5987,7 @@ loc_5F6A:
 
 loc_5FCA:
 	move.w	d6,6(a0)
-	_move.w	d7,0(a0)
+	move.w	d7,0(a0)
 	move.w	#$A00,d5
 	addq.b	#1,(Number_Sprites).w
 	add.b	(Number_Sprites).w,d5
@@ -6006,7 +5998,7 @@ loc_5FCA:
 	lea	8(a0),a0
 	addi.w	#$18,d7
 	move.w	d6,6(a0)
-	_move.w	d7,0(a0)
+	move.w	d7,0(a0)
 	move.w	#$A00,d5
 	addq.b	#1,(Number_Sprites).w
 	add.b	(Number_Sprites).w,d5
@@ -6414,7 +6406,7 @@ loc_6402:
 	addi.w	#$80,d6
 	move.l	(Addr_NextSpriteSlot).w,a4
 	move.w	d6,6(a4)
-	_move.w	d7,0(a4)
+	move.w	d7,0(a4)
 	tst.b	5(a0)
 	bne.s	loc_642C
 	move.w	#$A3CD,4(a4)
@@ -6454,7 +6446,7 @@ loc_6462:
 	addi.w	#$80,d6
 	move.l	(Addr_NextSpriteSlot).w,a4
 	move.w	d6,6(a4)
-	_move.w	d7,0(a4)
+	move.w	d7,0(a4)
 	move.w	4(a0),d0
 	andi.w	#$FF,d0
 	add.w	d0,d0
@@ -6567,7 +6559,7 @@ return_6550:
 ; ---------------------------------------------------------------------------
 ;word_6552:
 ArtUnc_PauseMenu:	dc.w $19
-	binclude    "ingame/artunc/Pause_menu.bin"
+	incbin    "ingame/artunc/Pause_menu.bin"
 
 ; =============== S U B	R O U T	I N E =======================================
 
@@ -6739,11 +6731,11 @@ restart_text:							; Restart Round dialog
 
 	; Write pause menu mappings to plane A map
 	cmpi.w	#1,(Number_Lives).w	; Check if lives > 1
-	bgt.s	+
+	bgt.s	.local
 	lea	(MapUnc_PauseMenu_GiveUp).l,a1	; Sets text to "Give Up"
-	bra.s	++
-+	lea	(MapUnc_PauseMenu_Restart).l,a1	; Sets text to "Restart Round"
-+	moveq	#4,d5
+	bra.s	.local2
+.local	lea	(MapUnc_PauseMenu_Restart).l,a1	; Sets text to "Restart Round"
+.local2	moveq	#4,d5
 	add.w	d0,d0
 	move.w	d0,d6
 
@@ -6992,8 +6984,8 @@ Pause_DarkenPalette:
 	lea	(Palette_Buffer).l,a4
 	lea	($FFFF7D8E).l,a3
 	moveq	#$1F,d7
--	move.l	(a4)+,(a3)+
-	dbf	d7,-
+.local	move.l	(a4)+,(a3)+
+	dbf	d7,.local
 
 	lea	(Palette_Buffer).l,a4
 	moveq	#$E,d7
@@ -7045,8 +7037,8 @@ Pause_RestorePalette:
 	lea	(Palette_Buffer).l,a4
 	lea	($FFFF7D8E).l,a3
 	moveq	#$1F,d7
--	move.l	(a3)+,(a4)+
-	dbf	d7,-
+.local	move.l	(a3)+,(a4)+
+	dbf	d7,.local
 
 	bsr.w	Palette_to_VRAM
 	rts
@@ -7239,7 +7231,7 @@ sub_6E24:
 ; filler
     rept 814
 	dc.b	$FF
-    endm
+    endr
 
 	else
 LevelSelect_Start:
@@ -7250,7 +7242,7 @@ LevelSelect_End:
 	; consistency with the existing binary patch
     rept 814-(LevelSelect_End-LevelSelect_Start)
     	dc.b	$FF
-    endm
+    endr
 	endif
 
 
@@ -7546,7 +7538,7 @@ loc_73F4:
 
 loc_7402:
 	jsr	(j_Hibernate_Object_1Frame).w
-	addi.w	#$10,($FFFFF876).w
+	add.l	#8,($FFFFF876).w
 	cmpi.w	#$100,($FFFFF876).w
 	bgt.s	loc_7420
 
@@ -7695,7 +7687,7 @@ loc_757E:
 	beq.w	loc_75C0
 	cmpi.w	#5,d5
 	beq.w	loc_75C0
-	addi.w	#$10,d6
+	add.l	#8,d6
 
 loc_75C0:
 	bsr.w	sub_7B30
@@ -8127,7 +8119,7 @@ loc_7A60:
 	move.w	x_pos(a3),d7
 	sub.w	d4,d7
 	andi.w	#$FFF0,d7
-	addi.w	#$10,d7
+	add.l	#8,d7
 	add.w	d4,d7
 	move.w	d7,x_pos(a3)
 	add.w	d4,d7
@@ -8197,7 +8189,7 @@ loc_7AD6:
 	beq.w	loc_7B0A
 	cmpi.w	#5,d5
 	beq.w	loc_7B0A
-	addi.w	#$10,d6
+	add.l	#8,d6
 
 loc_7B0A:
 	bsr.w	sub_7B30
@@ -8278,7 +8270,7 @@ loc_7B9E:
 
 loc_7BA4:
 	andi.w	#$FFF0,d4
-	addi.w	#$10,d4
+	add.l	#8,d4
 	add.w	(sp),d4
 	move.w	d4,x_pos(a3)
 	add.w	(sp),d4
@@ -8935,7 +8927,7 @@ loc_818A:
 	moveq	#-$11,d7
 	bsr.w	sub_B43A
 	beq.w	loc_819A
-	addi.w	#$10,y_pos(a3)
+	add.l	#8,y_pos(a3)
 
 loc_819A:
 	sf	(Cyclone_flying).w
@@ -9708,7 +9700,7 @@ loc_8890:
 	bne.w	loc_88E6
 	move.w	x_pos(a3),d7
 	andi.w	#$FFF0,d7
-	addi.w	#$10,d7
+	add.l	#8,d7
 	move.w	d7,x_pos(a3)
 
 loc_88B6:
@@ -9788,7 +9780,7 @@ loc_8958:
 	move.w	y_pos(a3),d7
 	clr.w	$20(a3)
 	andi.w	#$FFF0,d7
-	addi.w	#$10,d7
+	add.l	#8,d7
 	move.w	d7,y_pos(a3)
 
 loc_897C:
@@ -10631,7 +10623,7 @@ loc_91F6:
 ; ---------------------------------------------------------------------------
 
 loc_9204:
-	_tst.b	0(sp)
+	tst.b	0(sp)
 	beq.w	loc_9212
 	moveq	#-1,d7
 	addq.w	#2,sp
@@ -10752,7 +10744,7 @@ loc_930E:
 ; ---------------------------------------------------------------------------
 
 loc_9318:
-	_tst.b	0(sp)
+	tst.b	0(sp)
 	beq.w	loc_9326
 	moveq	#-1,d7
 	addq.w	#2,sp
@@ -10843,7 +10835,7 @@ loc_93D4:
 	bne.w	loc_9402
 	move.w	x_pos(a3),d7
 	andi.w	#$FFF0,d7
-	addi.w	#$10,d7
+	add.l	#8,d7
 	add.w	y_pos(a3),d7
 	move.w	d7,($FFFFFA24).w
 	sf	($FFFFFA26).w
@@ -11373,7 +11365,7 @@ sub_9832:
 	move.w	y_pos(a3),d2
 	subi.w	#$1F,d2
 	move.w	d2,d3
-	addi.w	#$10,d3
+	add.l	#8,d3
 	movem.l	a2-a3,-(sp)
 	lea	($FFFFF86A).w,a2
 
@@ -12279,7 +12271,7 @@ loc_9FBC:
 	andi.w	#$FFF0,d0
 	tst.w	x_vel(a3)
 	bmi.s	loc_9FCE
-	addi.w	#$10,d0
+	add.l	#8,d0
 
 loc_9FCE:
 	subq.w	#1,d0
@@ -12371,7 +12363,7 @@ loc_A0B4:
 	andi.w	#$FFF0,d0
 	tst.w	x_vel(a3)
 	bpl.s	loc_A0C6
-	addi.w	#$10,d0
+	add.l	#8,d0
 
 loc_A0C6:
 	subq.w	#1,d0
@@ -13448,7 +13440,7 @@ loc_ABD4:
 
 loc_ABF0:
 	add.w	(Level_width_tiles).w,a4
-	addi.w	#$10,d6
+	add.l	#8,d6
 	move.w	(a4),d7
 	andi.w	#$7000,d7
 	cmpi.w	#$6000,d7
@@ -14228,7 +14220,7 @@ loc_B350:
 	beq.w	loc_B3A8
 	moveq	#0,d7
 	move.b	(Red_Stealth_sword_swing).w,d7
-	addi.w	#$10,d7
+	add.l	#8,d7
 	cmpi.w	#$7F,d7
 	ble.w	loc_B380
 	move.w	#$7F,d7
@@ -14773,22 +14765,22 @@ Teleport:
 	sf	(Allow_Pausing).w
 	jsr	(j__gemspauseall).l
 	cmpi.w	#$FFFB,d6
-	bne.s	+
+	bne.s	.local
 	move.l	d0,-(sp)
 	moveq	#sfx_Teleport,d0
 	jsr	(j_PlaySound).l
 	move.l	(sp)+,d0
 
-+
+.local
 	st	($FFFFFBCE).w
 	jsr	(j_sub_8C2).w
 	tst.b	(Two_player_flag).w
 	bne.w	loc_B894
 	tst.b	($FFFFFC29).w
-	bne.w	+
+	bne.w	.local2
 	move.w	#8,(Game_Mode).w
 
-+
+.local2
 	tst.w	(Player_1_Lives).w
 	beq.w	loc_B8E2
 	bra.w	loc_B8DE
@@ -15231,7 +15223,7 @@ loc_BC96:
 	beq.w	loc_BCB2
 	cmp.w	d4,d5
 	beq.w	loc_BCB2
-	addi.w	#$A,a4
+	add.w	#$A,a4
 	dbf	d7,loc_BC96
 
 loc_BCAC:
@@ -15407,7 +15399,7 @@ loc_BE08:
 
 loc_BE0C:
 	addq.w	#1,d4
-	addi.w	#$10,d2
+	add.l	#8,d2
 	subq.w	#2,d1
 	subq.w	#2,d0
 	bge.s	loc_BE20
@@ -15644,7 +15636,7 @@ CharacterCollision_TouchFlagpole:
 	lea	(Addr_FirstObjectSlot).w,a0
 
 loc_C056:
-	_move.l	0(a0),d0
+	move.l	0(a0),d0
 	beq.s	loc_C070
 	move.l	d0,a0
 	cmp.l	a5,a0
@@ -15674,7 +15666,7 @@ loc_C070:
 
 loc_C0B6:
 	move.l	d0,a3
-	_move.l	0(a3),d0
+	move.l	0(a3),d0
 	move.l	d0,-(sp)
 	cmp.l	(Addr_GfxObject_Kid).w,a3
 	beq.s	loc_C0C8
@@ -15977,7 +15969,7 @@ loc_C34E:
 	move.w	d3,d4
 	move.l	d4,4(a6)
 	move.l	#0,(a6)
-	addi.w	#$20,d1
+	add.w	#$20,d1
 	dbf	d2,loc_C34E
 	rts
 ; End of function sub_C346
@@ -16054,7 +16046,7 @@ loc_C406:
 
 loc_C408:
 	and.b	d4,(a0)
-	addi.w	#$20,a0
+	add.w	#$20,a0
 	dbf	d2,loc_C408
 	movem.l	(sp)+,d2-d3/a0
 	rts
@@ -16308,17 +16300,17 @@ loc_C644:
 	bra.s	loc_C60C
 ; ---------------------------------------------------------------------------
 ArtComp_C65A_HoloBG:
-	binclude    "scenes/artcomp/Hologram_background.bin"
+	incbin    "scenes/artcomp/Hologram_background.bin"
 ArtComp_CAB2_HoloBlocks:
-	binclude    "scenes/artcomp/Hologram_blocks.bin"
+	incbin    "scenes/artcomp/Hologram_blocks.bin"
 	align	2
 MapEni_CC0E:
-	binclude    "scenes/mapeni/hologram_background.bin"
+	incbin    "scenes/mapeni/hologram_background.bin"
 	align	2
 
-Pal_D00C:	binclude	"scenes/palette/Score_screen.bin"
-Pal_D02A:	binclude	"scenes/palette/0D02A.bin"
-Pal_D048:	binclude	"scenes/palette/0D048.bin"
+Pal_D00C:	incbin	"scenes/palette/Score_screen.bin"
+Pal_D02A:	incbin	"scenes/palette/0D02A.bin"
+Pal_D048:	incbin	"scenes/palette/0D048.bin"
 ; ---------------------------------------------------------------------------
 ; START	OF FUNCTION CHUNK FOR Character_CheckCollision
 
@@ -16328,7 +16320,7 @@ loc_D052:
 	lea	(Addr_FirstObjectSlot).w,a0
 
 loc_D05A:
-	_move.l	0(a0),d0
+	move.l	0(a0),d0
 	beq.s	loc_D074
 	move.l	d0,a0
 	cmp.l	a5,a0
@@ -16355,7 +16347,7 @@ loc_D074:
 
 loc_D0AA:
 	move.l	d0,a3
-	_move.l	0(a3),d0
+	move.l	0(a3),d0
 	move.l	d0,-(sp)
 	cmp.l	(Addr_GfxObject_Kid).w,a3
 	beq.s	loc_D0BC
@@ -17008,7 +17000,7 @@ loc_D980:
 	lea	(Addr_FirstObjectSlot).w,a0
 
 loc_D984:
-	_move.l	0(a0),d0
+	move.l	0(a0),d0
 	beq.s	loc_D99E
 	move.l	d0,a0
 	cmp.l	a5,a0
@@ -17035,7 +17027,7 @@ loc_D99E:
 
 loc_D9D4:
 	move.l	d0,a3
-	_move.l	0(a3),d0
+	move.l	0(a3),d0
 	move.l	d0,-(sp)
 	cmp.l	(Addr_GfxObject_Kid).w,a3
 	beq.s	loc_D9E6
@@ -17137,7 +17129,7 @@ loc_DAD6:
 	add.w	d7,d1
 
 loc_DAE8:
-	_move.w	0(a2),d4
+	move.w	0(a2),d4
 	beq.w	loc_DB1A
 	move.w	d4,a2
 	move.w	2(a2),d4
@@ -17189,7 +17181,7 @@ sub_DB22:
 ; filler
     rept 896
 	dc.b	$FF
-    endm
+    endr
 
 ; ---------------------------------------------------------------------------
 j_sub_F7E0:	;sub_DED2
@@ -18030,7 +18022,7 @@ loc_E4C4:
 	bge.w	loc_E650
 	move.w	d7,d5
 	lsl.w	#3,d5
-	addi.w	#$10,d5
+	add.l	#8,d5
 	move.w	d0,a1
 	tst.b	($FFFFFABE).w
 	bne.s	loc_E50A
@@ -18331,7 +18323,7 @@ loc_E650:
 	tst.b	($FFFFFABE).w
 	bne.w	loc_E67E
 	add.w	d4,a1
-	addi.w	#$20,a1
+	add.w	#$20,a1
 	add.w	d4,d0
 	cmpi.w	#$1C0,d0
 	bge.w	loc_E7A4
@@ -18357,7 +18349,7 @@ loc_E692:
 	lsr.w	#1,d3
 	addq.w	#2,d3
 	move.w	d1,(a2)+
-	addi.w	#$10,d1
+	add.l	#8,d1
 	move.b	#$D,(a2)+
 	addq.b	#1,d2
 	move.b	d2,(a2)+
@@ -18369,7 +18361,7 @@ loc_E6BC:
 	subq.w	#8,d3
 	bmi.s	loc_E6D8
 	move.w	d1,(a2)+
-	addi.w	#$20,d1
+	add.w	#$20,d1
 	move.b	#$F,(a2)+
 	addq.b	#1,d2
 	move.b	d2,(a2)+
@@ -18385,7 +18377,7 @@ loc_E6D8:
 	lsl.w	#2,d3
 	add.w	d3,d1
 	move.w	d1,(a2)+
-	addi.w	#$20,d1
+	add.w	#$20,d1
 	move.b	#$F,(a2)+
 	addq.b	#1,d2
 	move.b	d2,(a2)+
@@ -18500,7 +18492,7 @@ loc_E7E0:
 	move.w	d0,d6
 	tst.b	($FFFFFABE).w
 	bne.s	loc_E7F4
-	addi.w	#$10,d6
+	add.l	#8,d6
 	moveq	#0,d4
 	bra.s	loc_E7FE
 ; ---------------------------------------------------------------------------
@@ -18593,7 +18585,7 @@ loc_E8A6:
 	tst.b	($FFFFFABE).w
 	bne.s	loc_E8CA
 	add.w	d3,d6
-	addi.w	#$10,d6
+	add.l	#8,d6
 	add.w	d3,d0
 	subi.w	#$10,d0
 	cmpi.w	#$1C0,d0
@@ -19520,7 +19512,7 @@ loc_EFC8:
 	andi.w	#$F,d1
 	add.w	d1,d1
 	move.w	ShooterObject_InteractBlock_Index(pc,d1.w),a3
-	addi.l	#ShooterObject_InteractBlock_Index,a3
+	add.l	#ShooterObject_InteractBlock_Index,a3
 	jmp	(a3)
 ; END OF FUNCTION CHUNK	FOR sub_DFB0
 ; ---------------------------------------------------------------------------
@@ -20769,7 +20761,7 @@ loc_FA2E:
 	move.w	d7,(a2)+
 	move.w	d3,(a2)+
 	move.w	d0,(a2)+
-	addi.w	#$10,d0
+	add.l	#8,d0
 	dbf	d2,loc_FA2E
 
 loc_FA40:
@@ -20824,7 +20816,7 @@ loc_FAA6:
 	move.w	d7,(a2)+
 	move.w	d3,(a2)+
 	move.w	d0,(a2)+
-	addi.w	#$10,d1
+	add.l	#8,d1
 	dbf	d2,loc_FAA6
 	lea	$10(a0),a0
 	dbf	d6,loc_F76C
@@ -20911,7 +20903,7 @@ sub_FB3E:
 	add.w	d4,d4
 	lea	($FFFF4BB8).l,a1
 	move.w	(a1,d4.w),a1
-	addi.l	#$FF0000,a1
+	add.l	#$FF0000,a1
 	moveq	#0,d4
 	move.b	(a1,d0.w),d4
 	move.w	d4,(a0)
@@ -21099,11 +21091,11 @@ stru_FD4C:
 ;diamond_pickup:
 PrizeDiamondCollected_Init:
 	tst.b	$19(a3)
-	bne.s	+
+	bne.s	.local
 	moveq	#sfx_Diamond_prize,d0
 	jsr	(j_PlaySound).l
 
-+
+.local
 	move.l	#$1010002,a3
 	jsr	(j_Load_GfxObjectSlot).w
 	move.b	#1,priority(a3)
@@ -21125,11 +21117,11 @@ PrizeDiamondCollected_Init:
 	move.l	$26(a4),x_vel(a3)
 	move.l	#$FFFD0000,y_vel(a3)
 
--
+.local2
 	jsr	(j_Hibernate_Object_1Frame).w
 	addi.l	#$6000,y_vel(a3)
 	tst.b	$19(a3)
-	beq.s	-
+	beq.s	.local2
 	jmp	(j_Delete_CurrentObject).w
 ; ---------------------------------------------------------------------------
 
@@ -21148,7 +21140,7 @@ Increase_Diamonds:
 	asr.l	#5,d1
 	move.w	#$1F,d2
 
--
+.local
 	jsr	(j_Hibernate_Object_1Frame).w
 	add.l	d0,$3E(a3)
 	add.l	d1,$42(a3)
@@ -21158,29 +21150,29 @@ Increase_Diamonds:
 	move.w	$42(a3),d4
 	add.w	(Camera_Y_pos).w,d4
 	move.w	d4,y_pos(a3)
-	dbf	d2,-
+	dbf	d2,.local
 	addq.w	#1,(Number_Diamonds).w
 	cmpi.w	#$14,(Number_Diamonds).w
-	bne.w	+
+	bne.w	.local2
 	move.l	d0,-(sp)
 	moveq	#sfx_Diamond_Power_available,d0
 	jsr	(j_PlaySound).l
 	move.l	(sp)+,d0
 
-+
+.local2
 	cmpi.w	#$32,(Number_Diamonds).w
-	bne.w	+
+	bne.w	.local3
 	move.l	d0,-(sp)
 	moveq	#sfx_Diamond_Power_available,d0
 	jsr	(j_PlaySound).l
 	move.l	(sp)+,d0
 
-+
+.local3
 	cmpi.w	#$63,(Number_Diamonds).w
-	ble.w	+
+	ble.w	.local4
 	move.w	#$63,(Number_Diamonds).w
 
-+
+.local4
 	jmp	(j_Delete_CurrentObject).w
 ; ---------------------------------------------------------------------------
 ;loc_FE7A:
@@ -21282,14 +21274,14 @@ loc_FFDE:
 	move.w	(Time_Minutes).w,d7
 	addq.w	#3,d7	; Clocks are worth 3 minutes
 	cmpi.w	#10,d7
-	blt.w	+
+	blt.w	.local
 	
 	; If timer is above 10 minutes, reset it to 10 minutes
 	move.w	#10,d7
 	clr.w	(Time_Seconds_low_digit).w
 	clr.w	(Time_Seconds_high_digit).w
 
-+
+.local
 	move.w	d7,(Time_Minutes).w
 
 loc_FFFC:
@@ -21353,7 +21345,7 @@ sub_1007A:
 	add.w	d4,d4
 	lea	($FFFF4BB8).l,a1
 	move.w	(a1,d4.w),a1
-	addi.l	#$FF0000,a1
+	add.l	#$FF0000,a1
 	moveq	#0,d4
 	move.b	(a1,d0.w),d4
 	move.w	d4,(a0)
@@ -21462,7 +21454,7 @@ loc_101D8:
 	add.w	d4,d4
 	lea	($FFFF4BB8).l,a1
 	move.w	(a1,d4.w),a1
-	addi.l	#$FF0000,a1
+	add.l	#$FF0000,a1
 	moveq	#0,d4
 	move.b	(a1,d0.w),d4
 	move.w	d4,(a0)
@@ -22085,9 +22077,9 @@ loc_10856:
 	moveq	#$27,d0
 	moveq	#0,d1
 	move.w	d1,(a0)
--
+.local
 	move.l	d1,(a1)+
-	dbf	d0,-
+	dbf	d0,.local
 
 loc_1086A:
 	; Check the array for our prize.
@@ -22257,26 +22249,26 @@ loc_109E8:										; Could be 10-diamond pickup increment
 	bne.s	loc_10A3A
 	addq.w	#1,(Number_Diamonds).w
 	cmpi.w	#$14,(Number_Diamonds).w
-	bne.w	+
+	bne.w	.local
 	move.l	d0,-(sp)
 	moveq	#sfx_Diamond_Power_available,d0
 	jsr	(j_PlaySound).l
 	move.l	(sp)+,d0
 
-+
+.local
 	cmpi.w	#$32,(Number_Diamonds).w
-	bne.w	+
+	bne.w	.local2
 	move.l	d0,-(sp)
 	moveq	#sfx_Diamond_Power_available,d0
 	jsr	(j_PlaySound).l
 	move.l	(sp)+,d0
 
-+
+.local2
 	cmpi.w	#$63,(Number_Diamonds).w
-	ble.w	+
+	ble.w	.local3
 	move.w	#$63,(Number_Diamonds).w
 
-+
+.local3
 	exg	a1,a3
 	jsr	(j_loc_1078).w
 	clr.l	$44(a5,d2.w)
@@ -23055,7 +23047,7 @@ sub_11120:
 	add.w	d4,d4
 	lea	($FFFF4BB8).l,a1
 	move.w	(a1,d4.w),a1
-	addi.l	#$FF0000,a1
+	add.l	#$FF0000,a1
 	moveq	#0,d4
 	move.b	(a1,d0.w),d4
 	move.w	d4,(a0)
@@ -23342,7 +23334,7 @@ loc_113F4:
 	addq.w	#1,d2
 	add.w	(Level_width_tiles).w,a1
 	bsr.w	EraseBlockFromLevelLayout
-	addi.w	#$10,y_pos(a3)
+	add.l	#8,y_pos(a3)
 	move.w	#$F,d0
 
 loc_1141E:
@@ -23498,7 +23490,7 @@ EraseBlockFromLevelLayout:
 	add.w	d0,d0
 	lea	($FFFF4BB8).l,a0
 	move.w	(a0,d0.w),a0
-	addi.l	#$FF0000,a0
+	add.l	#$FF0000,a0
 	moveq	#0,d0
 	move.b	(a0,d1.w),d0	; skin(?) of cell entry in Level_Layout
 	move.w	d1,-(sp)
@@ -23525,7 +23517,7 @@ EraseBlockFromLevelLayout:
 ; filler
     rept 934
 	dc.b	$FF
-    endm
+    endr
 
 ; =============== S U B	R O U T	I N E =======================================
 
@@ -23978,9 +23970,9 @@ loc_11DB0:
 	lea	(Palette_Buffer+$2).l,a2
 	moveq	#$E,d1
 
--	; loop to copy foreground palette into palette RAM
+.local	; loop to copy foreground palette into palette RAM
 	move.w	(a1)+,(a2)+
-	dbf	d1,-
+	dbf	d1,.local
 
 	move.l	(LnkTo_ThemePal2_Index).l,a1
 	moveq	#0,d0
@@ -24031,9 +24023,9 @@ loc_11E16:
 	lea	(Palette_Buffer+$32).l,a2
 	moveq	#6,d1
 
--	; loop to copy background palette into palette RAM
+.local	; loop to copy background palette into palette RAM
 	move.w	(a1)+,(a2)+
-	dbf	d1,-
+	dbf	d1,.local
 
 	move.l	(MainAddr_Index).l,a0
 	move.l	(a0,d7.w),a0
@@ -25380,13 +25372,13 @@ loc_129FC:
 	dc.b  $D
 	dc.b   0
 	dc.b  $E
-ArtUnc_12A08:  binclude    "ingame/artunc/Juggernaut_skull_frame_1.bin"
+ArtUnc_12A08:  incbin    "ingame/artunc/Juggernaut_skull_frame_1.bin"
 	dc.b   0
 	dc.b  $D
 	dc.b   0
 	dc.b $10
-ArtUnc_12A8C:  binclude    "ingame/artunc/Juggernaut_skull_frame_2.bin"
-ArtUnc_12B0C:  binclude    "ingame/artunc/Some_kind_of_star.bin"
+ArtUnc_12A8C:  incbin    "ingame/artunc/Juggernaut_skull_frame_2.bin"
+ArtUnc_12B0C:  incbin    "ingame/artunc/Some_kind_of_star.bin"
 ; =============== S U B	R O U T	I N E =======================================
 
 ;sub_12B8C:
@@ -25402,7 +25394,7 @@ loc_12B9C:
 ; End of function Load_FlagBottomArt
 
 ; ---------------------------------------------------------------------------
-ArtUnc_12BA4:  binclude    "ingame/artunc/Flag_bottom.bin"
+ArtUnc_12BA4:  incbin    "ingame/artunc/Flag_bottom.bin"
 ; =============== S U B	R O U T	I N E =======================================
 
 
@@ -25418,14 +25410,14 @@ loc_12C34:
 ; End of function sub_12C24
 
 ; ---------------------------------------------------------------------------
-ArtUnc_12C3C:  binclude    "ingame/artunc/Hitpoint_display.bin"
-Pal_12CBC:  binclude    "theme/palette_fg/cave_plethora.bin"
-Pal_12CDA:  binclude    "theme/palette_fg/cave_alt.bin"
-Pal_12CF8:  binclude    "theme/palette_bg/cave_alt.bin"
-Pal_12D08:  binclude    "theme/palette_fg/city_unused.bin"
-Pal_12D26:  binclude    "theme/palette_fg/city_alt.bin"
-Pal_12D44:  binclude    "theme/palette_bg/city_unused.bin"
-Pal_12D54:  binclude    "theme/palette_bg/city_alt.bin"
+ArtUnc_12C3C:  incbin    "ingame/artunc/Hitpoint_display.bin"
+Pal_12CBC:  incbin    "theme/palette_fg/cave_plethora.bin"
+Pal_12CDA:  incbin    "theme/palette_fg/cave_alt.bin"
+Pal_12CF8:  incbin    "theme/palette_bg/cave_alt.bin"
+Pal_12D08:  incbin    "theme/palette_fg/city_unused.bin"
+Pal_12D26:  incbin    "theme/palette_fg/city_alt.bin"
+Pal_12D44:  incbin    "theme/palette_bg/city_unused.bin"
+Pal_12D54:  incbin    "theme/palette_bg/city_alt.bin"
 
 ; =============== S U B	R O U T	I N E =======================================
 
@@ -25437,7 +25429,7 @@ Load_EyclopsBeamArt:
 ; End of function Load_EyclopsBeamArt		; d0 - offset in VRAM (destination)
 
 ; ---------------------------------------------------------------------------
-ArtComp_12D70:  binclude    "scenes/artcomp/Some_geometric_patterns.bin"
+ArtComp_12D70:  incbin    "scenes/artcomp/Some_geometric_patterns.bin"
 	align 2
 ; ---------------------------------------------------------------------------
 ; 12DD0
@@ -25549,8 +25541,8 @@ loc_12EDE:
 ; ---------------------------------------------------------------------------
 Pal_12EEC:	dc.b   0
 	dc.b  $C
-	binclude	"scenes/palette/SegaLogo.bin"
-ArtComp_12F30_Sega:  binclude    "scenes/artcomp/Sega_Logo.bin"
+	incbin	"scenes/palette/SegaLogo.bin"
+ArtComp_12F30_Sega:  incbin    "scenes/artcomp/Sega_Logo.bin"
 	align	2
 ; ---------------------------------------------------------------------------
 ; 1329E
@@ -26019,7 +26011,7 @@ loc_135D2:
 	sub.w	a5,d7
 	bcc.s	loc_13602
 	move.w	d7,d6
-	addi.w	#$10,d6
+	add.l	#8,d6
 	neg.w	d7
 	lsl.w	d7,d1
 	move.b	(a0),d5
@@ -26875,10 +26867,10 @@ loc_13A9E:
 
 ; ---------------------------------------------------------------------------
 ArtComp_13AA4:
-	binclude    "ingame/artcomp/Murder_wall.bin"
+	incbin    "ingame/artcomp/Murder_wall.bin"
 	align	2
 Pal_1408A:
-	binclude	"ingame/palette/Murder_wall.bin"
+	incbin	"ingame/palette/Murder_wall.bin"
 
 ; =============== S U B	R O U T	I N E =======================================
 
@@ -27091,9 +27083,9 @@ Init_SpriteAttr_HUD:
 	lea	(Sprite_Table).l,a1
 	moveq	#$13,d0
 
--
+.local
 	move.l	(a0)+,(a1)+
-	dbf	d0,-
+	dbf	d0,.local
 	move.l	#Sprite_Table+$50,(Addr_NextSpriteSlot).w
 	move.b	#$A,(Number_Sprites).w
 	addq.w	#1,(Time_Seconds_low_digit).w
@@ -27321,34 +27313,34 @@ return_14438:
 ; ---------------------------------------------------------------------------
 ;unk_1443A
 Palette_Permutation_unknown:
-	binclude	"theme/palette_permutations/unknown.bin"
+	incbin	"theme/palette_permutations/unknown.bin"
 ;unk_1444A
 Palette_Permutation_FGCity:
-	binclude	"theme/palette_permutations/city_fg.bin"
+	incbin	"theme/palette_permutations/city_fg.bin"
 ;unk_1445A
 Palette_Permutation_FGForest:
-	binclude	"theme/palette_permutations/forest_fg.bin"
+	incbin	"theme/palette_permutations/forest_fg.bin"
 ;unk_1446A
 ;Palette_Permutation_unused:
-	binclude	"theme/palette_permutations/unused.bin"
+	incbin	"theme/palette_permutations/unused.bin"
 ;unk_1447A
 Palette_Permutation_Identity:
-	binclude	"theme/palette_permutations/identity.bin"
+	incbin	"theme/palette_permutations/identity.bin"
 ;unk_1448A
 Palette_Permutation_BGForest:
-	binclude	"theme/palette_permutations/forest_bg.bin"
+	incbin	"theme/palette_permutations/forest_bg.bin"
 ;unk_1449A
 Palette_Permutation_FGMountain:
-	binclude	"theme/palette_permutations/mountain_fg.bin"
+	incbin	"theme/palette_permutations/mountain_fg.bin"
 ;unk_144AA
 Palette_Permutation_BGMountain:
-	binclude	"theme/palette_permutations/mountain_bg.bin"
+	incbin	"theme/palette_permutations/mountain_bg.bin"
 ;unk_144BA
 Palette_Permutation_BGHill:
-	binclude	"theme/palette_permutations/hill_bg.bin"
+	incbin	"theme/palette_permutations/hill_bg.bin"
 ;unk_144CA
 Palette_Permutation_BGHill_alt:
-	binclude	"theme/palette_permutations/hill_alt_bg.bin"
+	incbin	"theme/palette_permutations/hill_alt_bg.bin"
 
 ; =============== S U B	R O U T	I N E =======================================
 
@@ -27852,7 +27844,7 @@ loc_147BA:
 	beq.s	loc_1483A	; disable geyser
 	move.w	(a0),d4
 	move.w	d4,a2
-	addi.l	#j_LoadGameModeData,a2
+	add.l	#j_LoadGameModeData,a2
 	move.l	a2,a1
 
 loc_147D6:
@@ -27972,7 +27964,7 @@ loc_148E6:
 	move.l	d7,a2
 	move.l	a2,a1
 	moveq	#0,d5
-	addi.w	#$10,d1
+	add.l	#8,d1
 
 loc_148F8:
 	move.w	(Camera_Y_pos).w,d7
@@ -27986,7 +27978,7 @@ loc_148F8:
 	move.l	a1,a2
 
 loc_14914:
-	addi.w	#$10,d1
+	add.l	#8,d1
 	addq.w	#1,d5
 	cmp.w	d3,d5
 	ble.s	loc_148F8
@@ -28064,7 +28056,7 @@ loc_149E4:
 	moveq	#0,d7
 	move.w	(a0)+,d7
 	move.l	d7,a2
-	addi.l	#j_LoadGameModeData,a2
+	add.l	#j_LoadGameModeData,a2
 	move.l	a2,a1
 	bra.s	loc_14A0A
 ; ---------------------------------------------------------------------------
@@ -28127,7 +28119,7 @@ sub_14A58:
 	cmp.w	d7,d5
 	bgt.s	loc_14AAA
 	move.w	$54(a5),d7
-	addi.w	#$10,d7
+	add.l	#8,d7
 	move.w	(Kid_hitbox_bottom).w,d5
 	cmp.w	d7,d5
 	blt.s	loc_14AAA
@@ -28161,10 +28153,10 @@ sub_14AB0:
 	move.w	$54(a5),d6
 	subq.w	#1,d7
 	addq.w	#1,d6
-	cmpi.l	#unk_1466E,a2
+	cmp.l	#unk_1466E,a2
 	blt.s	loc_14AFC
 	beq.s	loc_14B00
-	cmpi.l	#unk_1468C,a2
+	cmp.l	#unk_1468C,a2
 	blt.s	loc_14B06
 	bgt.s	loc_14B04
 	addq.w	#3,d6
@@ -28265,7 +28257,7 @@ loc_14BE8:
 	add.w	(a2),d6
 	move.w	d6,6(a4)
 	sub.w	2(a2),d7
-	_move.w	d7,0(a4)
+	move.w	d7,0(a4)
 	move.w	4(a2),4(a4)
 	move.w	6(a2),d6
 	addq.b	#1,(Number_Sprites).w
@@ -28505,16 +28497,16 @@ loc_14E46:
 Init_SpecialEffect_Nothing:
 	rts
 ; ---------------------------------------------------------------------------
-Pal_TitleCard_sky:	binclude    "theme/titlecard/palette/sky.bin"
-Pal_TitleCard_ice:	binclude    "theme/titlecard/palette/ice.bin"
-Pal_TitleCard_hill:	binclude    "theme/titlecard/palette/hill.bin"
-Pal_TitleCard_island:	binclude    "theme/titlecard/palette/island.bin"
-Pal_TitleCard_desert:	binclude    "theme/titlecard/palette/desert.bin"
-Pal_TitleCard_swamp:	binclude    "theme/titlecard/palette/swamp.bin"
-Pal_TitleCard_mountain:	binclude    "theme/titlecard/palette/mountain.bin"
-Pal_TitleCard_cave:	binclude    "theme/titlecard/palette/cave.bin"
-Pal_TitleCard_forest:	binclude    "theme/titlecard/palette/forest.bin"
-Pal_TitleCard_city:	binclude    "theme/titlecard/palette/city.bin"
+Pal_TitleCard_sky:	incbin    "theme/titlecard/palette/sky.bin"
+Pal_TitleCard_ice:	incbin    "theme/titlecard/palette/ice.bin"
+Pal_TitleCard_hill:	incbin    "theme/titlecard/palette/hill.bin"
+Pal_TitleCard_island:	incbin    "theme/titlecard/palette/island.bin"
+Pal_TitleCard_desert:	incbin    "theme/titlecard/palette/desert.bin"
+Pal_TitleCard_swamp:	incbin    "theme/titlecard/palette/swamp.bin"
+Pal_TitleCard_mountain:	incbin    "theme/titlecard/palette/mountain.bin"
+Pal_TitleCard_cave:	incbin    "theme/titlecard/palette/cave.bin"
+Pal_TitleCard_forest:	incbin    "theme/titlecard/palette/forest.bin"
+Pal_TitleCard_city:	incbin    "theme/titlecard/palette/city.bin"
 ;14FAE
 TitleCardPalettes_Index:
 	dc.l 0
@@ -28528,25 +28520,25 @@ TitleCardPalettes_Index:
 	dc.l Pal_TitleCard_cave
 	dc.l Pal_TitleCard_forest
 	dc.l Pal_TitleCard_city
-MapEni_TitleCard_sky:		binclude    "theme/titlecard/mapeni/sky.bin"
+MapEni_TitleCard_sky:		incbin    "theme/titlecard/mapeni/sky.bin"
 	align	2
-MapEni_TitleCard_ice:		binclude    "theme/titlecard/mapeni/ice.bin"
+MapEni_TitleCard_ice:		incbin    "theme/titlecard/mapeni/ice.bin"
 	align	2
-MapEni_TitleCard_hill:		binclude    "theme/titlecard/mapeni/hill.bin"
+MapEni_TitleCard_hill:		incbin    "theme/titlecard/mapeni/hill.bin"
 	align	2
-MapEni_TitleCard_island:	binclude    "theme/titlecard/mapeni/island.bin"
+MapEni_TitleCard_island:	incbin    "theme/titlecard/mapeni/island.bin"
 	align	2
-MapEni_TitleCard_desert:	binclude    "theme/titlecard/mapeni/desert.bin"
+MapEni_TitleCard_desert:	incbin    "theme/titlecard/mapeni/desert.bin"
 	align	2
-MapEni_TitleCard_swamp:		binclude    "theme/titlecard/mapeni/swamp.bin"
+MapEni_TitleCard_swamp:		incbin    "theme/titlecard/mapeni/swamp.bin"
 	align	2
-MapEni_TitleCard_mountain:	binclude    "theme/titlecard/mapeni/mountain.bin"
+MapEni_TitleCard_mountain:	incbin    "theme/titlecard/mapeni/mountain.bin"
 	align	2
-MapEni_TitleCard_cave:		binclude    "theme/titlecard/mapeni/cave.bin"
+MapEni_TitleCard_cave:		incbin    "theme/titlecard/mapeni/cave.bin"
 	align	2
-MapEni_TitleCard_forest:	binclude    "theme/titlecard/mapeni/forest.bin"
+MapEni_TitleCard_forest:	incbin    "theme/titlecard/mapeni/forest.bin"
 	align	2
-MapEni_TitleCard_city:		binclude    "theme/titlecard/mapeni/city.bin"
+MapEni_TitleCard_city:		incbin    "theme/titlecard/mapeni/city.bin"
 	align	2
 TitleCardMaps_Index:
 	dc.l 0
@@ -28560,16 +28552,16 @@ TitleCardMaps_Index:
 	dc.l MapEni_TitleCard_cave
 	dc.l MapEni_TitleCard_forest
 	dc.l MapEni_TitleCard_city
-ArtComp_TitleCard_sky:		binclude    "theme/titlecard/artcomp/sky.bin"
-ArtComp_TitleCard_ice:		binclude    "theme/titlecard/artcomp/ice.bin"
-ArtComp_TitleCard_hill:		binclude    "theme/titlecard/artcomp/hill.bin"
-ArtComp_TitleCard_island:	binclude    "theme/titlecard/artcomp/island.bin"
-ArtComp_TitleCard_desert:	binclude    "theme/titlecard/artcomp/desert.bin"
-ArtComp_TitleCard_swamp:	binclude    "theme/titlecard/artcomp/swamp.bin"
-ArtComp_TitleCard_mountain:	binclude    "theme/titlecard/artcomp/mountain.bin"
-ArtComp_TitleCard_cave:		binclude    "theme/titlecard/artcomp/cave.bin"
-ArtComp_TitleCard_forest:	binclude    "theme/titlecard/artcomp/forest.bin"
-ArtComp_TitleCard_city:		binclude    "theme/titlecard/artcomp/city.bin"
+ArtComp_TitleCard_sky:		incbin    "theme/titlecard/artcomp/sky.bin"
+ArtComp_TitleCard_ice:		incbin    "theme/titlecard/artcomp/ice.bin"
+ArtComp_TitleCard_hill:		incbin    "theme/titlecard/artcomp/hill.bin"
+ArtComp_TitleCard_island:	incbin    "theme/titlecard/artcomp/island.bin"
+ArtComp_TitleCard_desert:	incbin    "theme/titlecard/artcomp/desert.bin"
+ArtComp_TitleCard_swamp:	incbin    "theme/titlecard/artcomp/swamp.bin"
+ArtComp_TitleCard_mountain:	incbin    "theme/titlecard/artcomp/mountain.bin"
+ArtComp_TitleCard_cave:		incbin    "theme/titlecard/artcomp/cave.bin"
+ArtComp_TitleCard_forest:	incbin    "theme/titlecard/artcomp/forest.bin"
+ArtComp_TitleCard_city:		incbin    "theme/titlecard/artcomp/city.bin"
 	align 2
 TitleCardArt_Index:
 	dc.l	0
@@ -28738,9 +28730,9 @@ TitleCardSize_Index:
 	dc.b  $F,$17
 	dc.b $13,$11
 Pal_19C48:	
-	binclude	"scenes/palette/Title_card_letters.bin"
+	incbin	"scenes/palette/Title_card_letters.bin"
 ArtComp_19C68_TtlCardLetters:
-	binclude	"scenes/artcomp/Title_card_letters.bin"
+	incbin	"scenes/artcomp/Title_card_letters.bin"
 	align	2
 ; 1A45C
 ;AddrTbl_LevelNames is defined in here at 1A842:
@@ -28800,7 +28792,7 @@ loc_1AB6A:
 	beq.s	loc_1ABD6
 	cmpi.b	#$22,d1
 	beq.s	loc_1ABDC
-	addi.w	#$10,d2
+	add.l	#8,d2
 	bra.s	loc_1AB6A
 ; ---------------------------------------------------------------------------
 
@@ -28810,7 +28802,7 @@ loc_1ABCA:
 ; ---------------------------------------------------------------------------
 
 loc_1ABD0:
-	addi.w	#$20,d2
+	add.w	#$20,d2
 	bra.s	loc_1AB6A
 ; ---------------------------------------------------------------------------
 
@@ -28828,12 +28820,12 @@ loc_1ABE2:
 	addq.w	#1,a2
 	move.w	(a3)+,d2
 	move.w	(a3)+,d3
-	bra.s	loc_1AB6A
+	bra.w	loc_1AB6A
 ; ---------------------------------------------------------------------------
 
 loc_1ABEA:
 	addq.w	#1,a2
-	addi.w	#$10,d2
+	add.l	#8,d2
 	bra.w	loc_1AB6A
 ; ---------------------------------------------------------------------------
 
@@ -29000,7 +28992,7 @@ loc_1AD56:
 	move.b	#$7B,$44(a0)
 	move.w	d1,$46(a0)
 	move.w	d2,$48(a0)
-	addi.w	#$10,d1
+	add.l	#8,d1
 	dbf	d3,loc_1AD56
 	jmp	(j_Delete_CurrentObject).w
 ; ---------------------------------------------------------------------------
@@ -29406,7 +29398,7 @@ loc_1B1A4:
 	move.l	#$FFD00000,($FFFFA656).w
 	cmpi.b	#2,($FFFFFC82).w
 	bne.s	loc_1B1E8
-	addi.w	#$20,($FFFFA656).w
+	add.w	#$20,($FFFFA656).w
 
 loc_1B1E8:
 	bsr.w	sub_1B222
@@ -30780,7 +30772,7 @@ loc_1BF84:
 loc_1BF8A:
 	move.w	(a1)+,(a2)+
 	dbf	d0,loc_1BF8A
-	addi.w	#$24,a0
+	add.w	#$24,a0
 	dbf	d1,loc_1BF84
 	lea	($FFFF7F82).l,a4
 	moveq	#$15,d4
@@ -30876,7 +30868,7 @@ loc_1C07C:
 loc_1C082:
 	move.w	(a1)+,(a2)+
 	dbf	d0,loc_1C082
-	addi.w	#$20,a0
+	add.w	#$20,a0
 	dbf	d1,loc_1C07C
 	move.l	#$41940000,d0
 	lea	($FFFF7F82).l,a0
@@ -31024,7 +31016,7 @@ sub_1C1A2:
 	move.b	byte_1C1F4(pc,d4.w),d3
 	btst	#0,d1
 	beq.s	loc_1C1C6
-	addi.w	#$20,d3
+	add.w	#$20,d3
 
 loc_1C1C6:
 	btst	#1,d1
@@ -31052,7 +31044,7 @@ loc_1C1E2:
 
 loc_1C1E4:
 	and.b	d4,(a0)
-	addi.w	#$20,a0
+	add.w	#$20,a0
 	dbf	d2,loc_1C1E4
 	movem.l	(sp)+,d2-d3/a0
 
@@ -31096,7 +31088,7 @@ loc_1C210:
 loc_1C21E:
 	jsr	(j_Hibernate_Object_1Frame).w
 	bsr.w	sub_1C246
-	addi.w	#$10,($FFFFF876).w
+	add.l	#8,($FFFFF876).w
 	cmpi.w	#$100,($FFFFF876).w
 	bgt.s	loc_1C240
 
@@ -31151,8 +31143,8 @@ return_1C288:
 ; End of function sub_1C278
 
 ; ---------------------------------------------------------------------------
-Pal_1C28A:  binclude	"scenes/palette/intro1_wildside.bin"
-Pal_1C2F0:  binclude	"scenes/palette/intro2_sky.bin"
+Pal_1C28A:  incbin	"scenes/palette/intro1_wildside.bin"
+Pal_1C2F0:  incbin	"scenes/palette/intro2_sky.bin"
 unk_1C336:	dc.b   2
 	dc.b   1
 	dc.b   3
@@ -31169,9 +31161,9 @@ unk_1C336:	dc.b   2
 	dc.b  $D
 	dc.b  $E
 	dc.b  $F
-Pal_1C346:  binclude	"scenes/palette/intro3_alley.bin"
-Pal_1C3C6:  binclude	"scenes/palette/title_maniaxe_mask.bin"
-Pal_1C3D4:  binclude	"scenes/palette/title_juggernaut_mask.bin"
+Pal_1C346:  incbin	"scenes/palette/intro3_alley.bin"
+Pal_1C3C6:  incbin	"scenes/palette/title_maniaxe_mask.bin"
+Pal_1C3D4:  incbin	"scenes/palette/title_juggernaut_mask.bin"
 unk_1C3F0:	dc.b   0
 	dc.b   8
 	dc.b   9
@@ -31188,9 +31180,9 @@ unk_1C3F0:	dc.b   0
 	dc.b   0
 	dc.b   0
 	dc.b   0
-Pal_1C400:  binclude	"scenes/palette/title.bin"
-Pal_1C466:  binclude	"scenes/palette/title_maniaxe.bin"
-Pal_1C48C:  binclude	"scenes/palette/title_juggernaut.bin"
+Pal_1C400:  incbin	"scenes/palette/title.bin"
+Pal_1C466:  incbin	"scenes/palette/title_maniaxe.bin"
+Pal_1C48C:  incbin	"scenes/palette/title_juggernaut.bin"
 ; ---------------------------------------------------------------------------
 ; START	OF FUNCTION CHUNK FOR sub_1B2A4
 
@@ -31437,7 +31429,7 @@ loc_1C7D2:
 ; ---------------------------------------------------------------------------
 
 loc_1C7DC:
-	cmp.b	(off_20).w,d6	; This is likely a programming error and they forgot the # sign
+	cmp.b	20.w,d6	; This is likely a programming error and they forgot the # sign
 	bne.s	loc_1C7E6
 	move.b	#$6D,d6
 
@@ -31551,9 +31543,9 @@ loc_1C8A2:
 ; End of function sub_1C896
 
 ; ---------------------------------------------------------------------------
-Pal_1C8AA:  binclude	"scenes/palette/1C8AA.bin"
-Pal_1C92A:  binclude	"scenes/palette/1C92A.bin"
-Pal_1C97C:  binclude	"scenes/palette/options.bin"
+Pal_1C8AA:  incbin	"scenes/palette/1C8AA.bin"
+Pal_1C92A:  incbin	"scenes/palette/1C92A.bin"
+Pal_1C97C:  incbin	"scenes/palette/options.bin"
 	dc.b   0
 	dc.b $78 ; x
 	dc.b   0
@@ -33361,16 +33353,17 @@ loc_1DA7E:
 ; ---------------------------------------------------------------------------
 ; 1DA86
 ArtComp_1DA86_LettersNumbers:
-	binclude    "scenes/artcomp/Intro_text_letters.bin"
+	incbin    "scenes/artcomp/Intro_text_letters.bin"
 ArtComp_1DC8F:
-	binclude    "scenes/artcomp/Drop-down_screen_from_options_and_ending.bin"
+	incbin    "scenes/artcomp/Drop-down_screen_from_options_and_ending.bin"
 ArtComp_1DD5C:
-	binclude    "scenes/artcomp/Face_in_option_menu_background.bin"
+	incbin    "scenes/artcomp/Face_in_option_menu_background.bin"
 	align	2
 MapEni_1E264:
-	binclude    "scenes/mapeni/options_frame.bin"
+	incbin    "scenes/mapeni/options_frame.bin"
 	align	2
-Demo_InputData2:dc.b   0,  0,  0,  0,  0,  0,  0,$40,$40,$40,$48,$48,$48,$48,$48,$58
+Demo_InputData2:
+	dc.b   0,  0,  0,  0,  0,  0,  0,$40,$40,$40,$48,$48,$48,$48,$48,$58
 	dc.b $58,$58,$58,$58,$58,$58,$58,$58,$48,$48,$48,$58,$58,$58,$48,$48
 	dc.b $48,$48,$48,$48,$48,$48,$48,$58,$58,$50,$50,$50,$50,$40,$40,$40
 	dc.b $40,$40,$40,$40,$40,$40,$40,$40,$40,$40,$40,$40,$40,$40,$40,$40
@@ -33402,7 +33395,8 @@ Demo_InputData2:dc.b   0,  0,  0,  0,  0,  0,  0,$40,$40,$40,$48,$48,$48,$48,$48
 	dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
 	dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
 	dc.b   0,  0,  0
-Demo_InputData1:dc.b $80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80
+Demo_InputData1:
+	dc.b $80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80
 	dc.b $88,$88,$88,$88,$88,$88,$88,$88,$88,$88,$88,$88,$88,$88,$88,$88
 	dc.b $88,$88,$88,$88,$88,$88,$88,$88,  8,  8,  8,  8,  8,  8,$48,$48
 	dc.b $48,$48,$48,$48,$48,$48,$48,$48,$48,$48,$48,$48,$48,$48,$48,$48
@@ -33434,132 +33428,132 @@ Demo_InputData1:dc.b $80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80
 	dc.b $29,$29,  9,  9,$29,$29,$29,  9,  9,$29,$29,$29,  9,  9,$29,$29
 	dc.b $29,  9,  9,$29,$29,  9,  9,$29,$29,$29,  9,  9,$29,$29,$29,  9
 	dc.b   9,$29
-byte_1E6E3:  binclude    "scenes/artcomp/Dark_alley_from_intro.bin"
-byte_1FC20:  binclude    "scenes/artcomp/Boss_(cutscene)_after_defeat.bin"
-byte_20D36:  binclude    "scenes/artcomp/P_block_from_intro.bin"
-byte_213D9:  binclude    "scenes/artcomp/Red_Stealth_helmet_from_intro.bin"
-byte_216B7:  binclude    "scenes/artcomp/Juggernaut_helmet_from_intro.bin"
-byte_219C1:  binclude    "scenes/artcomp/Maniaxe_helmet_from_intro.bin"
-byte_21B79:  binclude    "scenes/artcomp/Broken_Glass_plane.bin"
-byte_22080:  binclude    "scenes/artcomp/Title_text_CHAMELEON.bin"
-byte_23E77:  binclude    "ingame/artcomp/Goo_from_Boss.bin"
-byte_243D5:  binclude    "scenes/artcomp/Sky_castle_and_night_sky_from_intro_scene.bin"
-byte_24985:  binclude    "scenes/artcomp/Title_text_KID.bin"
-byte_24CD0:  binclude    "scenes/artcomp/Computer_behind_grid_walls.bin"
-byte_26036:  binclude    "scenes/artcomp/Title_menu.bin"
-byte_261D7:  binclude    "scenes/artcomp/Kids_hanging_around_Wild_Side.bin"
-byte_26E3D:  binclude    "scenes/artcomp/Red_Stealth_transformation_from_intro.bin"
-byte_282C1:  binclude    "scenes/artcomp/Juggernaut_transformation_from_intro.bin"
-byte_2927C:  binclude    "scenes/artcomp/Maniaxe_transformation_from_intro.bin"
-byte_2A479:  binclude    "scenes/artcomp/Title_sparkles.bin"
-ArtUnc_2A4D6:  binclude    "scenes/artunc/Grey_mixed_pixels_during_title_transformation.bin"
-byte_2A756:  binclude    "scenes/artcomp/The_kid_transformation_from_intro.bin"
-byte_2A961:  binclude    "scenes/artcomp/Background_on_title.bin"
-byte_2A992:  binclude    "scenes/artcomp/The_kid_from_intro.bin"
-byte_2D51B:  binclude    "scenes/artcomp/Kids_that_get_freed.bin"
-byte_2D71A:  binclude    "scenes/artcomp/Background_for_intro_(Wild_Side).bin"
-byte_2D73B:  binclude    "scenes/artcomp/Wild_Side_arcade.bin"
-byte_2DEBF:  binclude    "scenes/artcomp/Wild_Side_door_and_inside.bin"
+byte_1E6E3:  incbin    "scenes/artcomp/Dark_alley_from_intro.bin"
+byte_1FC20:  incbin    "scenes/artcomp/Boss_(cutscene)_after_defeat.bin"
+byte_20D36:  incbin    "scenes/artcomp/P_block_from_intro.bin"
+byte_213D9:  incbin    "scenes/artcomp/Red_Stealth_helmet_from_intro.bin"
+byte_216B7:  incbin    "scenes/artcomp/Juggernaut_helmet_from_intro.bin"
+byte_219C1:  incbin    "scenes/artcomp/Maniaxe_helmet_from_intro.bin"
+byte_21B79:  incbin    "scenes/artcomp/Broken_Glass_plane.bin"
+byte_22080:  incbin    "scenes/artcomp/Title_text_CHAMELEON.bin"
+byte_23E77:  incbin    "ingame/artcomp/Goo_from_Boss.bin"
+byte_243D5:  incbin    "scenes/artcomp/Sky_castle_and_night_sky_from_intro_scene.bin"
+byte_24985:  incbin    "scenes/artcomp/Title_text_KID.bin"
+byte_24CD0:  incbin    "scenes/artcomp/Computer_behind_grid_walls.bin"
+byte_26036:  incbin    "scenes/artcomp/Title_menu.bin"
+byte_261D7:  incbin    "scenes/artcomp/Kids_hanging_around_Wild_Side.bin"
+byte_26E3D:  incbin    "scenes/artcomp/Red_Stealth_transformation_from_intro.bin"
+byte_282C1:  incbin    "scenes/artcomp/Juggernaut_transformation_from_intro.bin"
+byte_2927C:  incbin    "scenes/artcomp/Maniaxe_transformation_from_intro.bin"
+byte_2A479:  incbin    "scenes/artcomp/Title_sparkles.bin"
+ArtUnc_2A4D6:  incbin    "scenes/artunc/Grey_mixed_pixels_during_title_transformation.bin"
+byte_2A756:  incbin    "scenes/artcomp/The_kid_transformation_from_intro.bin"
+byte_2A961:  incbin    "scenes/artcomp/Background_on_title.bin"
+byte_2A992:  incbin    "scenes/artcomp/The_kid_from_intro.bin"
+byte_2D51B:  incbin    "scenes/artcomp/Kids_that_get_freed.bin"
+byte_2D71A:  incbin    "scenes/artcomp/Background_for_intro_(Wild_Side).bin"
+byte_2D73B:  incbin    "scenes/artcomp/Wild_Side_arcade.bin"
+byte_2DEBF:  incbin    "scenes/artcomp/Wild_Side_door_and_inside.bin"
 	align	2
-MapEni_2E154:  binclude    "scenes/mapeni/intro3_alley.bin"
+MapEni_2E154:  incbin    "scenes/mapeni/intro3_alley.bin"
 	align	2
-unk_2E39A:  binclude    "scenes/mapeni/2E39A.bin"
+unk_2E39A:  incbin    "scenes/mapeni/2E39A.bin"
 	align	2
-unk_2E436:  binclude    "scenes/mapeni/2E436.bin"
+unk_2E436:  incbin    "scenes/mapeni/2E436.bin"
 	align	2
-unk_2E4D6:  binclude    "scenes/mapeni/2E4D6.bin"
+unk_2E4D6:  incbin    "scenes/mapeni/2E4D6.bin"
 	align	2
-unk_2E582:  binclude    "scenes/mapeni/2E582.bin"
+unk_2E582:  incbin    "scenes/mapeni/2E582.bin"
 	align	2
-unk_2E64A:  binclude    "scenes/mapeni/2E64A.bin"
+unk_2E64A:  incbin    "scenes/mapeni/2E64A.bin"
 
-	binclude    "scenes/mapeni/unused_2E6CB.bin"
+	incbin    "scenes/mapeni/unused_2E6CB.bin"
 	align	2
-	binclude    "scenes/mapeni/unused_2E6EA.bin"
+	incbin    "scenes/mapeni/unused_2E6EA.bin"
 	align	2
-unk_2E706:  binclude    "scenes/mapeni/2E706.bin"
+unk_2E706:  incbin    "scenes/mapeni/2E706.bin"
 	align	2
-unk_2E728:  binclude    "scenes/mapeni/2E728.bin"
+unk_2E728:  incbin    "scenes/mapeni/2E728.bin"
 	align	2
-unk_2E77A:  binclude    "scenes/mapeni/2E77A.bin"
+unk_2E77A:  incbin    "scenes/mapeni/2E77A.bin"
 	align	2
-unk_2E7C6:  binclude    "scenes/mapeni/intro2_sky.bin"
+unk_2E7C6:  incbin    "scenes/mapeni/intro2_sky.bin"
 	align	2
-unk_2EA26:  binclude    "scenes/mapeni/2EA26.bin"
+unk_2EA26:  incbin    "scenes/mapeni/2EA26.bin"
 	align	2
-unk_2EA5E:  binclude    "scenes/mapeni/2EA5E.bin"
+unk_2EA5E:  incbin    "scenes/mapeni/2EA5E.bin"
 	align	2
-unk_2EAAE:  binclude    "scenes/mapeni/2EAAE.bin"
+unk_2EAAE:  incbin    "scenes/mapeni/2EAAE.bin"
 	align	2
-unk_2EACE:  binclude    "scenes/mapeni/2EACE.bin"
+unk_2EACE:  incbin    "scenes/mapeni/2EACE.bin"
 	align	2
-unk_2EB32:  binclude    "scenes/mapeni/2EB32.bin"
+unk_2EB32:  incbin    "scenes/mapeni/2EB32.bin"
 	align	2
-unk_2EBD4:  binclude    "scenes/mapeni/2EBD4.bin"
+unk_2EBD4:  incbin    "scenes/mapeni/2EBD4.bin"
 	align	2
-unk_2EC86:  binclude    "scenes/mapeni/2EC86.bin"
+unk_2EC86:  incbin    "scenes/mapeni/2EC86.bin"
 	align	2
-unk_2ED62:  binclude    "scenes/mapeni/2ED62.bin"
+unk_2ED62:  incbin    "scenes/mapeni/2ED62.bin"
 	align	2
-unk_2EE54:  binclude    "scenes/mapeni/2EE54.bin"
+unk_2EE54:  incbin    "scenes/mapeni/2EE54.bin"
 	align	2
-unk_2EF2C:  binclude    "scenes/mapeni/2EF2C.bin"
+unk_2EF2C:  incbin    "scenes/mapeni/2EF2C.bin"
 	align	2
-unk_2EF92:  binclude    "scenes/mapeni/2EF92.bin"
+unk_2EF92:  incbin    "scenes/mapeni/2EF92.bin"
 	align	2
-unk_2EFFE:  binclude    "scenes/mapeni/2EFFE.bin"
+unk_2EFFE:  incbin    "scenes/mapeni/2EFFE.bin"
 	align	2
-unk_2F09C:  binclude    "scenes/mapeni/2F09C.bin"
+unk_2F09C:  incbin    "scenes/mapeni/2F09C.bin"
 	align	2
-unk_2F124:  binclude    "scenes/mapeni/2F124.bin"
+unk_2F124:  incbin    "scenes/mapeni/2F124.bin"
 	align	2
-unk_2F1B0:  binclude    "scenes/mapeni/2F1B0.bin"
+unk_2F1B0:  incbin    "scenes/mapeni/2F1B0.bin"
 	align	2
-unk_2F242:  binclude    "scenes/mapeni/2F242.bin"
+unk_2F242:  incbin    "scenes/mapeni/2F242.bin"
 	align	2
-unk_2F2D0:  binclude    "scenes/mapeni/2F2D0.bin"
+unk_2F2D0:  incbin    "scenes/mapeni/2F2D0.bin"
 	align	2
-unk_2F306:  binclude    "scenes/mapeni/2F306.bin"
+unk_2F306:  incbin    "scenes/mapeni/2F306.bin"
 	align	2
-unk_2F374:  binclude    "scenes/mapeni/2F374.bin"
+unk_2F374:  incbin    "scenes/mapeni/2F374.bin"
 	align	2
-unk_2F41E:  binclude    "scenes/mapeni/2F41E.bin"
+unk_2F41E:  incbin    "scenes/mapeni/2F41E.bin"
 	align	2
-unk_2F4D0:  binclude    "scenes/mapeni/2F4D0.bin"
+unk_2F4D0:  incbin    "scenes/mapeni/2F4D0.bin"
 	align	2
-unk_2F592:  binclude    "scenes/mapeni/2F592.bin"
+unk_2F592:  incbin    "scenes/mapeni/2F592.bin"
 	align	2
-unk_2F674:  binclude    "scenes/mapeni/2F674.bin"
+unk_2F674:  incbin    "scenes/mapeni/2F674.bin"
 	align	2
-unk_2F76A:  binclude    "scenes/mapeni/2F76A.bin"
+unk_2F76A:  incbin    "scenes/mapeni/2F76A.bin"
 	align	2
-unk_2F7D0:  binclude    "scenes/mapeni/2F7D0.bin"
+unk_2F7D0:  incbin    "scenes/mapeni/2F7D0.bin"
 	align	2
-unk_2F840:  binclude    "scenes/mapeni/2F840.bin"
+unk_2F840:  incbin    "scenes/mapeni/2F840.bin"
 	align	2
-unk_2F856:  binclude    "scenes/mapeni/2F856.bin"
+unk_2F856:  incbin    "scenes/mapeni/2F856.bin"
 	align	2
-unk_2F882:  binclude    "scenes/mapeni/2F882.bin"
+unk_2F882:  incbin    "scenes/mapeni/2F882.bin"
 	align	2
-unk_2F8D2:  binclude    "scenes/mapeni/2F8D2.bin"
+unk_2F8D2:  incbin    "scenes/mapeni/2F8D2.bin"
 	align	2
-unk_2F94E:  binclude    "scenes/mapeni/2F94E.bin"
+unk_2F94E:  incbin    "scenes/mapeni/2F94E.bin"
 	align	2
-unk_2F9DE:  binclude    "scenes/mapeni/2F9DE.bin"
+unk_2F9DE:  incbin    "scenes/mapeni/2F9DE.bin"
 	align	2
-unk_2FAA8:  binclude    "scenes/mapeni/2FAA8.bin"
+unk_2FAA8:  incbin    "scenes/mapeni/2FAA8.bin"
 	align	2
-unk_2FB76:  binclude    "scenes/mapeni/2FB76.bin"
+unk_2FB76:  incbin    "scenes/mapeni/2FB76.bin"
 	align	2
-unk_2FC3A:  binclude    "scenes/mapeni/2FC3A.bin"
+unk_2FC3A:  incbin    "scenes/mapeni/2FC3A.bin"
 	align	2
-unk_2FCE4:  binclude    "scenes/mapeni/2FCE4.bin"
+unk_2FCE4:  incbin    "scenes/mapeni/2FCE4.bin"
 	align	2
-unk_2FDA6:  binclude    "scenes/mapeni/2FDA6.bin"
+unk_2FDA6:  incbin    "scenes/mapeni/2FDA6.bin"
 	align	2
-unk_2FDCE:  binclude    "scenes/mapeni/2FDCE.bin"
+unk_2FDCE:  incbin    "scenes/mapeni/2FDCE.bin"
 	align	2
-unk_2FDE0:  binclude    "scenes/mapeni/intro1_wildside.bin"
+unk_2FDE0:  incbin    "scenes/mapeni/intro1_wildside.bin"
 	align	2
 
 	dc.b   0
@@ -33568,7 +33562,7 @@ unk_2FDE0:  binclude    "scenes/mapeni/intro1_wildside.bin"
 ; filler
     rept 128
 	dc.b	$FF
-    endm
+    endr
 
 	align	2
 ; =============== S U B	R O U T	I N E =======================================
@@ -33650,7 +33644,7 @@ loc_30076:
 
 loc_3007A:
 	movem.l	(sp)+,d6-d7
-	addi.w	#$20,(Camera_Y_pos).w
+	add.w	#$20,(Camera_Y_pos).w
 	dbf	d6,loc_30066
 	tst.w	d7
 	bne.s	loc_30090
@@ -34449,7 +34443,7 @@ BackgroundScroll_ApplyDesertHeatRipple:
 	sub.w	d6,d0
 	bpl.s	loc_306C2
 	move.w	d0,d2
-	addi.w	#$10,d0
+	add.l	#8,d0
 	ble.s	return_30702
 	neg.w	d2
 	move.w	d0,d1
@@ -37350,7 +37344,7 @@ unk_31E48:
 ; filler
     rept 308
 	dc.b	$FF
-    endm
+    endr
 
 ; =============== S U B	R O U T	I N E =======================================
 
@@ -37386,12 +37380,12 @@ loc_31F9A:
 	move.b	#1,($FFFFF93F).w
 
 loc_31FCE:
-	addi.l	#8,a0
+	add.l	#8,a0
 
 loc_31FD4:
 	cmp.w	(a0),d1
 	blt.s	loc_31FE6
-	addi.l	#8,a0
+	add.l	#8,a0
 	move.w	(a1)+,d2
 	lsl.w	#3,d2
 	add.w	d2,a1
@@ -37597,9 +37591,9 @@ loc_3217C:
 loc_32188:
 	move.l	a0,-(sp)
 	move.l	(Addr_NextFreeGfxObjectSlot).w,a0
-	_move.l	0(a0),(Addr_NextFreeGfxObjectSlot).w
-	_move.l	0(a3),0(a0)
-	_move.l	a0,0(a3)
+	move.l	0(a0),(Addr_NextFreeGfxObjectSlot).w
+	move.l	0(a3),0(a0)
+	move.l	a0,0(a3)
 
 loc_3219E:
 	move.w	#1,$32(a0)
@@ -38659,9 +38653,9 @@ Load_EnemyPaletteLong:
 	lea	(Palette_Buffer+$42).l,a2
 	moveq	#$E,d5
 
--
+.local
 	move.w	(a0)+,(a2)+
-	dbf	d5,-
+	dbf	d5,.local
 	bra.w	Load_EnemyArtToVRAM
 ; ---------------------------------------------------------------------------
 
@@ -38673,9 +38667,9 @@ Load_EnemyPaletteNormal:
 	lea	(Palette_Buffer+$22).l,a2
 	moveq	#6,d5
 
--
+.local
 	move.w	(a0)+,(a2)+
-	dbf	d5,-
+	dbf	d5,.local
 	move.w	#0,(Palette_Buffer+$30).l
 	bra.s	Load_EnemyArtToVRAM
 ; ---------------------------------------------------------------------------
@@ -38684,9 +38678,9 @@ Load_EnemyPalette_SecondEnemy:	; 2nd enemy type
 	lea	(Palette_Buffer+$42).l,a2
 	moveq	#6,d5
 
--
+.local
 	move.w	(a0)+,(a2)+
-	dbf	d5,-
+	dbf	d5,.local
 	move.w	#0,(Palette_Buffer+$50).l
 	bra.s	Load_EnemyArtToVRAM
 ; ---------------------------------------------------------------------------
@@ -38695,9 +38689,9 @@ Load_EnemyPalette_ThirdEnemy:	; 3rd enemy type
 	lea	(Palette_Buffer+$52).l,a2
 	moveq	#6,d5
 
--
+.local
 	move.w	(a0)+,(a2)+
-	dbf	d5,-
+	dbf	d5,.local
 	move.w	#0,(Palette_Buffer+$50).l
 	moveq	#1,d6
 
@@ -40658,43 +40652,43 @@ Enemy22_Shiskaboss_Init:
 	move.w	#0,a0
 	jsr	(j_Allocate_ObjectSlot).w
 	move.l	#loc_38590,4(a0)
-	addi.w	#$20,y_pos(a3)
+	add.w	#$20,y_pos(a3)
 	move.w	x_pos(a3),$44(a0)
 	move.w	y_pos(a3),$46(a0)
 	move.w	#0,a0
 	jsr	(j_Allocate_ObjectSlot).w
 	move.l	#loc_3860E,4(a0)
-	addi.w	#$20,y_pos(a3)
+	add.w	#$20,y_pos(a3)
 	move.w	x_pos(a3),$44(a0)
 	move.w	y_pos(a3),$46(a0)
 	move.w	#0,a0
 	jsr	(j_Allocate_ObjectSlot).w
 	move.l	#loc_3868C,4(a0)
-	addi.w	#$20,y_pos(a3)
+	add.w	#$20,y_pos(a3)
 	move.w	x_pos(a3),$44(a0)
 	move.w	y_pos(a3),$46(a0)
 	move.w	#0,a0
 	jsr	(j_Allocate_ObjectSlot).w
 	move.l	#loc_3870A,4(a0)
-	addi.w	#$20,y_pos(a3)
+	add.w	#$20,y_pos(a3)
 	move.w	x_pos(a3),$44(a0)
 	move.w	y_pos(a3),$46(a0)
 	move.w	#0,a0
 	jsr	(j_Allocate_ObjectSlot).w
 	move.l	#loc_38788,4(a0)
-	addi.w	#$20,y_pos(a3)
+	add.w	#$20,y_pos(a3)
 	move.w	x_pos(a3),$44(a0)
 	move.w	y_pos(a3),$46(a0)
 	move.w	#0,a0
 	jsr	(j_Allocate_ObjectSlot).w
 	move.l	#loc_38806,4(a0)
-	addi.w	#$20,y_pos(a3)
+	add.w	#$20,y_pos(a3)
 	move.w	x_pos(a3),$44(a0)
 	move.w	y_pos(a3),$46(a0)
 	move.w	#0,a0
 	jsr	(j_Allocate_ObjectSlot).w
 	move.l	#loc_38884,4(a0)
-	addi.w	#$20,y_pos(a3)
+	add.w	#$20,y_pos(a3)
 	move.w	x_pos(a3),$44(a0)
 	move.w	y_pos(a3),$46(a0)
 	jmp	(j_Delete_CurrentObject).w
@@ -43905,11 +43899,11 @@ sub_3C3CE:
 	cmpi.w	#$FFE0,y_pos(a3)
 	ble.s	loc_3C436
 	move.w	(Level_width_pixels).w,d7
-	addi.w	#$20,d7
+	add.w	#$20,d7
 	cmp.w	x_pos(a3),d7
 	blt.s	loc_3C436
 	move.w	(Level_height_pixels).w,d7
-	addi.w	#$20,d7
+	add.w	#$20,d7
 	cmp.w	y_pos(a3),d7
 	blt.s	loc_3C436
 	cmpi.w	#$A,(Number_Objects).w
@@ -44187,7 +44181,7 @@ loc_3C618:
 ; filler
     rept 368
 	dc.b	$FF
-    endm
+    endr
 
 ; =============== S U B	R O U T	I N E =======================================
 
@@ -44219,10 +44213,10 @@ j_DiamondPower_CompileSprites:
 Clear_DiamondPowerObjectRAM:
 	lea	(Addr_FirstDPObjectSlot).w,a0
 	lea	($FFFFF612).w,a1
--
+.local
 	move.w	#0,(a0)+
 	cmp.w	a1,a0
-	blt.s	-
+	blt.s	.local
 ; End of function Clear_DiamondPowerObjectRAM
 
 
@@ -44234,11 +44228,11 @@ Initialize_DiamondPowerObjectSlots:
 	lea	($FFFFF2AC).w,a0
 	move.l	a0,(Addr_NextFreeDPObjectSlot).w
 	moveq	#8,d0
--
+.local
 	lea	$4C(a0),a1
 	move.l	a1,4(a0)
 	move.l	a1,a0
-	dbf	d0,-
+	dbf	d0,.local
 	clr.l	4(a0)
 	clr.l	(Addr_FirstDPObjectSlot).w
 	clr.l	(Addr_LastDPObjectSlot).w
@@ -44255,9 +44249,9 @@ Allocate_DiamondPowerObjectSlot:
 	move.l	4(a0),(Addr_NextFreeDPObjectSlot).w	; the successor in the list become the next free object slot
 	move.l	(Addr_FirstDPObjectSlot).w,4(a0)	; previously first object slot becomes successor of our new object
 	tst.l	(Addr_FirstDPObjectSlot).w
-	bne.s	+			; if the first object slot was empty
+	bne.s	.local			; if the first object slot was empty
 	move.l	a0,(Addr_LastDPObjectSlot).w	; then our new object is also the last object in the list
-+
+.local
 	move.l	a0,(Addr_FirstDPObjectSlot).w	; our object is the first in the list, regardless
 	move.w	#1,8(a0)
 	move.w	#0,$38(a0)
@@ -44281,7 +44275,7 @@ loc_3F5EC:
 loc_3F5F8:
 	cmp.l	(Addr_LastDPObjectSlot).w,a0
 	bne.s	loc_3F610
-	cmpi.l	#$FFFFF5A0,a1
+	cmp.l	#$FFFFF5A0,a1
 	bne.s	loc_3F60C
 	clr.l	(Addr_LastDPObjectSlot).w
 	bra.s	loc_3F610
@@ -44332,13 +44326,13 @@ DiamondPower_Run:
 	bne.w	DiamondPower_Main_Execute
 	move.w	(Current_Helmet).w,d0	; Check if helmet ID is Juggernaut
 	cmpi.w	#Juggernaut,d0
-	bne.s	+
+	bne.s	.local
 	tst.b	(FiveWayShotReady).w
 	bne.w	DiamondPower_Init_FiveWayShot
 	bra.s	DiamondPower_rts
 ; ---------------------------------------------------------------------------
 
-+
+.local
 	move.b	(Ctrl_Held).w,d1
 	andi.b	#Button_Start_mask|Button_A_mask,d1
 	cmpi.b	#Button_Start_mask|Button_A_mask,d1
@@ -44356,11 +44350,11 @@ DiamondPower_Check:	; Checks performed when a Diamond Power is input
 	subi.w	#$14,(Number_Diamonds).w		; Subtract 20 from diamonds
 	move.w	(Current_Helmet).w,d0			; Helmet ID -> d0
 	cmpi.w	#$1E,(Number_Diamonds).w		; Compare diamonds to 30
-	blt.s	+					; If <, execute diamond power
+	blt.s	.local					; If <, execute diamond power
 	subi.w	#$1E,(Number_Diamonds).w		; Subtract 30 from diamonds
 	addi.w	#$A,d0					; Add 10 to d0
 
-+	; Initialize Diamond Power
+.local	; Initialize Diamond Power
 	move.w	d0,(Diamond_power_ID).w
 	add.w	d0,d0
 	add.w	d0,d0
@@ -45779,7 +45773,7 @@ MapOrder_Index:
 ; filler
     rept 534
 	dc.b	$FF
-    endm
+    endr
 
 	align	2
 ; ---------------------------------------------------------------------------
@@ -45792,7 +45786,8 @@ LnkTo_ThemePal2_Index:	dc.l ThemePal2_Index
 LnkTo_ThemeCollision_Index:	dc.l	ThemeCollision_Index
 LnkTo_ArtComp_992E4_Blocks:	dc.l ArtComp_992E4_Blocks
 LnkTo_off_7B3E4:	dc.l off_7B3E4
-LnkTo_ArtComp_99F34_IngameNumbers:dc.l ArtComp_99F34_IngameNumbers 
+LnkTo_ArtComp_99F34_IngameNumbers:
+	dc.l ArtComp_99F34_IngameNumbers 
 LnkTo_BackgroundScroll_Index:	dc.l BackgroundScroll_Index
 LnkTo_unk_9784A:	dc.l unk_9784A
 LnkTo_unk_97B2C:	dc.l unk_97B2C
@@ -45842,7 +45837,8 @@ LnkTo_unk_9AA50:	dc.l unk_9AA50
 	dc.l unk_9B056
 	dc.l unk_9B258
 	dc.l unk_9B45A
-ThemeArtFront_Index:dc.l unk_80E84
+ThemeArtFront_Index:
+	dc.l unk_80E84
 	dc.l unk_80E86
 	dc.l unk_82B58
 	dc.l unk_84911
@@ -45853,7 +45849,8 @@ ThemeArtFront_Index:dc.l unk_80E84
 	dc.l unk_8E2D8
 	dc.l unk_902C2
 	dc.l unk_92226
-ThemeArtBack_Index:dc.l	unk_93C94
+ThemeArtBack_Index:
+	dc.l	unk_93C94
 	dc.l unk_93C94
 	dc.l unk_9422F
 	dc.l unk_9489A
@@ -45867,7 +45864,8 @@ ThemeArtBack_Index:dc.l	unk_93C94
 ThemeArtBack_CaveAlt:	dc.l unk_970D2	; 2C
 ThemeArtBack_MountainLightning:	dc.l unk_9729F	; 30
 ThemeArtBack_HillAlt:	dc.l unk_97381	; 34
-ThemeMappings_Index:dc.l unk_7C4EC
+ThemeMappings_Index:
+	dc.l unk_7C4EC
 	dc.l unk_7C51C
 	dc.l unk_7CCE4
 	dc.l unk_7D364
@@ -45878,7 +45876,8 @@ ThemeMappings_Index:dc.l unk_7C4EC
 	dc.l unk_7F80C
 	dc.l unk_7FE94
 	dc.l unk_8068C
-ThemePal1_Index:dc.w LnkTo_Pal_7B684-MainAddr_Index
+ThemePal1_Index:
+	dc.w LnkTo_Pal_7B684-MainAddr_Index
 	dc.w LnkTo_Pal_7B6A2-MainAddr_Index
 	dc.w LnkTo_Pal_7B6C0-MainAddr_Index
 	dc.w LnkTo_Pal_7B6DE-MainAddr_Index
@@ -45889,7 +45888,8 @@ ThemePal1_Index:dc.w LnkTo_Pal_7B684-MainAddr_Index
 	dc.w LnkTo_Pal_7B792-MainAddr_Index
 	dc.w LnkTo_Pal_7B7B0-MainAddr_Index
 	dc.w LnkTo_Pal_7B7CE-MainAddr_Index
-ThemePal2_Index:dc.w LnkTo0_Pal_7B7EC-MainAddr_Index
+ThemePal2_Index:
+	dc.w LnkTo0_Pal_7B7EC-MainAddr_Index
 	dc.w LnkTo_Pal_7B7EC-MainAddr_Index
 	dc.w LnkTo_Pal_7B7FC-MainAddr_Index
 	dc.w LnkTo_Pal_7B80C-MainAddr_Index
@@ -45900,7 +45900,8 @@ ThemePal2_Index:dc.w LnkTo0_Pal_7B7EC-MainAddr_Index
 	dc.w LnkTo_Pal_7B87C-MainAddr_Index
 	dc.w LnkTo_Pal_7B88C-MainAddr_Index
 	dc.w LnkTo_Pal_7B89C-MainAddr_Index
-ThemeCollision_Index:dc.l unk_7BB64
+ThemeCollision_Index:
+	dc.l unk_7BB64
 	dc.l unk_7BB6A
 	dc.l unk_7BC62
 	dc.l unk_7BD5E
@@ -46081,144 +46082,144 @@ off_7B64C:	dc.l unk_9F124
 	dc.l unk_9F912
 	dc.l unk_9F998
 	dc.l unk_9F9EC
-Pal_7B684:  binclude    "theme/palette_fg/theme0.bin"
-Pal_7B6A2:  binclude    "theme/palette_fg/sky.bin"
-Pal_7B6C0:  binclude    "theme/palette_fg/ice.bin"
-Pal_7B6DE:  binclude    "theme/palette_fg/hill.bin"
-Pal_7B6FC:  binclude    "theme/palette_fg/island.bin"
-Pal_7B71A:  binclude    "theme/palette_fg/desert.bin"
-Pal_7B738:  binclude    "theme/palette_fg/swamp.bin"
-Pal_7B756:  binclude    "theme/palette_fg/mountain.bin"
-Pal_7B774:  binclude    "theme/palette_fg/mountain_storm.bin"
-Pal_7B792:  binclude    "theme/palette_fg/cave.bin"
-Pal_7B7B0:  binclude    "theme/palette_fg/forest.bin"
-Pal_7B7CE:  binclude    "theme/palette_fg/city.bin"
-Pal_7B7EC:  binclude    "theme/palette_bg/sky.bin"
-Pal_7B7FC:  binclude    "theme/palette_bg/ice.bin"
-Pal_7B80C:  binclude    "theme/palette_bg/hill.bin"
-Pal_7B81C:  binclude    "theme/palette_bg/island.bin"
-Pal_7B82C:  binclude    "theme/palette_bg/desert.bin"
-Pal_7B83C:  binclude    "theme/palette_bg/swamp.bin"
-Pal_7B84C:  binclude    "theme/palette_bg/mountain.bin"
-Pal_7B85C:  binclude    "theme/palette_bg/mountain_storm.bin"
-Pal_7B86C:  binclude    "theme/palette_bg/mountain_lightning.bin"
-Pal_7B87C:  binclude    "theme/palette_bg/cave.bin"
-Pal_7B88C:  binclude    "theme/palette_bg/forest.bin"
-Pal_7B89C:  binclude    "theme/palette_bg/city.bin"
-Pal_7B8AC:  binclude	"ingame/palette/lava.bin"
-Pal_7B8BC:  binclude	"ingame/palette/hail_mountain.bin"
-Pal_7B8CC:  binclude	"ingame/palette/hail_ice.bin"
+Pal_7B684:  incbin    "theme/palette_fg/theme0.bin"
+Pal_7B6A2:  incbin    "theme/palette_fg/sky.bin"
+Pal_7B6C0:  incbin    "theme/palette_fg/ice.bin"
+Pal_7B6DE:  incbin    "theme/palette_fg/hill.bin"
+Pal_7B6FC:  incbin    "theme/palette_fg/island.bin"
+Pal_7B71A:  incbin    "theme/palette_fg/desert.bin"
+Pal_7B738:  incbin    "theme/palette_fg/swamp.bin"
+Pal_7B756:  incbin    "theme/palette_fg/mountain.bin"
+Pal_7B774:  incbin    "theme/palette_fg/mountain_storm.bin"
+Pal_7B792:  incbin    "theme/palette_fg/cave.bin"
+Pal_7B7B0:  incbin    "theme/palette_fg/forest.bin"
+Pal_7B7CE:  incbin    "theme/palette_fg/city.bin"
+Pal_7B7EC:  incbin    "theme/palette_bg/sky.bin"
+Pal_7B7FC:  incbin    "theme/palette_bg/ice.bin"
+Pal_7B80C:  incbin    "theme/palette_bg/hill.bin"
+Pal_7B81C:  incbin    "theme/palette_bg/island.bin"
+Pal_7B82C:  incbin    "theme/palette_bg/desert.bin"
+Pal_7B83C:  incbin    "theme/palette_bg/swamp.bin"
+Pal_7B84C:  incbin    "theme/palette_bg/mountain.bin"
+Pal_7B85C:  incbin    "theme/palette_bg/mountain_storm.bin"
+Pal_7B86C:  incbin    "theme/palette_bg/mountain_lightning.bin"
+Pal_7B87C:  incbin    "theme/palette_bg/cave.bin"
+Pal_7B88C:  incbin    "theme/palette_bg/forest.bin"
+Pal_7B89C:  incbin    "theme/palette_bg/city.bin"
+Pal_7B8AC:  incbin	"ingame/palette/lava.bin"
+Pal_7B8BC:  incbin	"ingame/palette/hail_mountain.bin"
+Pal_7B8CC:  incbin	"ingame/palette/hail_ice.bin"
 
-unk_7B8DC:  binclude    "theme/block_mappings.bin"
+unk_7B8DC:  incbin    "theme/block_mappings.bin"
 
-unk_7BB64:  binclude    "theme/collision/theme0.bin"
-unk_7BB6A:  binclude    "theme/collision/sky.bin"
-unk_7BC62:  binclude    "theme/collision/ice.bin"
-unk_7BD5E:  binclude    "theme/collision/hill.bin"
-unk_7BE57:  binclude    "theme/collision/island.bin"
-unk_7BF53:  binclude    "theme/collision/desert.bin"
-unk_7C02C:  binclude    "theme/collision/swamp.bin"
-unk_7C128:  binclude    "theme/collision/mountain.bin"
-unk_7C1F5:  binclude    "theme/collision/cave.bin"
-unk_7C2F1:  binclude    "theme/collision/forest.bin"
-unk_7C3F1:  binclude    "theme/collision/city.bin"
+unk_7BB64:  incbin    "theme/collision/theme0.bin"
+unk_7BB6A:  incbin    "theme/collision/sky.bin"
+unk_7BC62:  incbin    "theme/collision/ice.bin"
+unk_7BD5E:  incbin    "theme/collision/hill.bin"
+unk_7BE57:  incbin    "theme/collision/island.bin"
+unk_7BF53:  incbin    "theme/collision/desert.bin"
+unk_7C02C:  incbin    "theme/collision/swamp.bin"
+unk_7C128:  incbin    "theme/collision/mountain.bin"
+unk_7C1F5:  incbin    "theme/collision/cave.bin"
+unk_7C2F1:  incbin    "theme/collision/forest.bin"
+unk_7C3F1:  incbin    "theme/collision/city.bin"
 	align	2
-unk_7C4EC:  binclude    "theme/mappings/theme0.bin"
-unk_7C51C:  binclude    "theme/mappings/sky.bin"
-unk_7CCE4:  binclude    "theme/mappings/ice.bin"
-unk_7D364:  binclude    "theme/mappings/hill.bin"
-unk_7DB24:  binclude    "theme/mappings/island.bin"
-unk_7E304:  binclude    "theme/mappings/desert.bin"
-unk_7E9AC:  binclude    "theme/mappings/swamp.bin"
-unk_7F1A4:  binclude    "theme/mappings/mountain.bin"
-unk_7F80C:  binclude    "theme/mappings/cave.bin"
-unk_7FE94:  binclude    "theme/mappings/forest.bin"
-unk_8068C:  binclude    "theme/mappings/city.bin"
+unk_7C4EC:  incbin    "theme/mappings/theme0.bin"
+unk_7C51C:  incbin    "theme/mappings/sky.bin"
+unk_7CCE4:  incbin    "theme/mappings/ice.bin"
+unk_7D364:  incbin    "theme/mappings/hill.bin"
+unk_7DB24:  incbin    "theme/mappings/island.bin"
+unk_7E304:  incbin    "theme/mappings/desert.bin"
+unk_7E9AC:  incbin    "theme/mappings/swamp.bin"
+unk_7F1A4:  incbin    "theme/mappings/mountain.bin"
+unk_7F80C:  incbin    "theme/mappings/cave.bin"
+unk_7FE94:  incbin    "theme/mappings/forest.bin"
+unk_8068C:  incbin    "theme/mappings/city.bin"
 
-unk_80E84:  binclude    "theme/artcomp_fg/theme0.bin"
-unk_80E86:  binclude    "theme/artcomp_fg/sky.bin"
-unk_82B58:  binclude    "theme/artcomp_fg/ice.bin"
-unk_84911:  binclude    "theme/artcomp_fg/hill.bin"
-unk_8676F:  binclude    "theme/artcomp_fg/island.bin"
-unk_88795:  binclude    "theme/artcomp_fg/desert.bin"
-unk_8A321:  binclude    "theme/artcomp_fg/swamp.bin"
-unk_8C54C:  binclude    "theme/artcomp_fg/mountain.bin"
-unk_8E2D8:  binclude    "theme/artcomp_fg/cave.bin"
-unk_902C2:  binclude    "theme/artcomp_fg/forest.bin"
-unk_92226:  binclude    "theme/artcomp_fg/city.bin"
+unk_80E84:  incbin    "theme/artcomp_fg/theme0.bin"
+unk_80E86:  incbin    "theme/artcomp_fg/sky.bin"
+unk_82B58:  incbin    "theme/artcomp_fg/ice.bin"
+unk_84911:  incbin    "theme/artcomp_fg/hill.bin"
+unk_8676F:  incbin    "theme/artcomp_fg/island.bin"
+unk_88795:  incbin    "theme/artcomp_fg/desert.bin"
+unk_8A321:  incbin    "theme/artcomp_fg/swamp.bin"
+unk_8C54C:  incbin    "theme/artcomp_fg/mountain.bin"
+unk_8E2D8:  incbin    "theme/artcomp_fg/cave.bin"
+unk_902C2:  incbin    "theme/artcomp_fg/forest.bin"
+unk_92226:  incbin    "theme/artcomp_fg/city.bin"
 	align	2
-unk_93C94:  binclude    "theme/artcomp_bg/sky.bin"
-unk_9422F:  binclude    "theme/artcomp_bg/ice.bin"
-unk_9489A:  binclude    "theme/artcomp_bg/hill.bin"
-unk_94B50:  binclude    "theme/artcomp_bg/island.bin"
-unk_94D92:  binclude    "theme/artcomp_bg/desert.bin"
-unk_95506:  binclude    "theme/artcomp_bg/swamp.bin"
-unk_95B76:  binclude    "theme/artcomp_bg/mountain.bin"
-unk_96045:  binclude    "theme/artcomp_bg/cave.bin"
-unk_96514:  binclude    "theme/artcomp_bg/forest.bin"
-unk_96B49:  binclude    "theme/artcomp_bg/city.bin"
-unk_970D2:  binclude    "theme/artcomp_bg/cave_alt.bin"
-unk_9729F:  binclude    "theme/artcomp_bg/mountain_lightning.bin"
-unk_97381:  binclude    "theme/artcomp_bg/hill_alt.bin"
+unk_93C94:  incbin    "theme/artcomp_bg/sky.bin"
+unk_9422F:  incbin    "theme/artcomp_bg/ice.bin"
+unk_9489A:  incbin    "theme/artcomp_bg/hill.bin"
+unk_94B50:  incbin    "theme/artcomp_bg/island.bin"
+unk_94D92:  incbin    "theme/artcomp_bg/desert.bin"
+unk_95506:  incbin    "theme/artcomp_bg/swamp.bin"
+unk_95B76:  incbin    "theme/artcomp_bg/mountain.bin"
+unk_96045:  incbin    "theme/artcomp_bg/cave.bin"
+unk_96514:  incbin    "theme/artcomp_bg/forest.bin"
+unk_96B49:  incbin    "theme/artcomp_bg/city.bin"
+unk_970D2:  incbin    "theme/artcomp_bg/cave_alt.bin"
+unk_9729F:  incbin    "theme/artcomp_bg/mountain_lightning.bin"
+unk_97381:  incbin    "theme/artcomp_bg/hill_alt.bin"
 	align	2
 
 	align_dmasafe	ANIART_SHORE_SIZE+2
 unk_9784A:	dc.w	$17
-	binclude	"ingame/artunc/shore_1.bin"
+	incbin	"ingame/artunc/shore_1.bin"
 	align_dmasafe	ANIART_SHORE_SIZE+2
 unk_97B2C:	dc.w	$17
-	binclude	"ingame/artunc/shore_2.bin"
+	incbin	"ingame/artunc/shore_2.bin"
 	align_dmasafe	ANIART_SHORE_SIZE+2
 unk_97E0E:	dc.w	$17
-	binclude	"ingame/artunc/shore_3.bin"
+	incbin	"ingame/artunc/shore_3.bin"
 	align_dmasafe	ANIART_SHORE_SIZE+2
 unk_980F0:	dc.w	$17
-	binclude	"ingame/artunc/shore_4.bin"
+	incbin	"ingame/artunc/shore_4.bin"
 
 ArtComp_983D2_Lava:  
-	binclude    "ingame/artcomp/Lava.bin"
+	incbin    "ingame/artcomp/Lava.bin"
 	align	2
 ArtComp_99090_Rain:  
-	binclude    "ingame/artcomp/Rain.bin"
+	incbin    "ingame/artcomp/Rain.bin"
 ArtComp_991ED_Hail:  
-	binclude    "ingame/artcomp/Hail_Sparkles.bin"
+	incbin    "ingame/artcomp/Hail_Sparkles.bin"
 	align	2
 ArtComp_992E4_Blocks:  
-	binclude    "ingame/artcomp/Blocks.bin"
+	incbin    "ingame/artcomp/Blocks.bin"
 	align	2
 ArtComp_99F34_IngameNumbers:  
-	binclude    "ingame/artcomp/HUD_numbers.bin"
+	incbin    "ingame/artcomp/HUD_numbers.bin"
 	align	2
 
 	align_dmasafe	ANIART_DIAMOND_SIZE+2
 unk_99FCA:	dc.w	$10
-	binclude	"ingame/artunc/diamond_1.bin"
+	incbin	"ingame/artunc/diamond_1.bin"
 	align_dmasafe	ANIART_DIAMOND_SIZE+2
 unk_9A1CC:	dc.w	$10
-	binclude	"ingame/artunc/diamond_2.bin"
+	incbin	"ingame/artunc/diamond_2.bin"
 	align_dmasafe	ANIART_DIAMOND_SIZE+2
 unk_9A3CE:	dc.w	$10
-	binclude	"ingame/artunc/diamond_3.bin"
+	incbin	"ingame/artunc/diamond_3.bin"
 	align_dmasafe	ANIART_DIAMOND_SIZE+2
 unk_9A5D0:	dc.w	$10
-	binclude	"ingame/artunc/diamond_4.bin"
+	incbin	"ingame/artunc/diamond_4.bin"
 
 ArtComp_9A7D2:  
-	binclude    "ingame/artcomp/Spinning_rock_(loaded_into_VRAM_but_unused).bin"
+	incbin    "ingame/artcomp/Spinning_rock_(loaded_into_VRAM_but_unused).bin"
 	align	2
 
 unk_9AA50:	dc.w	$10
-	binclude	"scenes/artunc/unknown_1.bin"
+	incbin	"scenes/artunc/unknown_1.bin"
 unk_9AC52:	dc.w	$10
-	binclude	"scenes/artunc/unknown_2.bin"
+	incbin	"scenes/artunc/unknown_2.bin"
 unk_9AE54:	dc.w	$10
-	binclude	"scenes/artunc/unknown_3.bin"
+	incbin	"scenes/artunc/unknown_3.bin"
 unk_9B056:	dc.w	$10
-	binclude	"scenes/artunc/unknown_4.bin"
+	incbin	"scenes/artunc/unknown_4.bin"
 unk_9B258:	dc.w	$10
-	binclude	"scenes/artunc/unknown_grid_1.bin"
+	incbin	"scenes/artunc/unknown_grid_1.bin"
 unk_9B45A:	dc.w	$10
-	binclude	"scenes/artunc/unknown_grid_2.bin"
+	incbin	"scenes/artunc/unknown_grid_2.bin"
 
 unk_9B65C:	dc.b   0
 	dc.b   8
@@ -46708,99 +46709,99 @@ unk_9B6E0:	dc.b   0
 	dc.b $E3 ; ã
 	align	2
 
-unk_9B83C:  binclude	"theme/bg_chunks/sky_00.bin"
+unk_9B83C:  incbin	"theme/bg_chunks/sky_00.bin"
 	align	2
-unk_9B842:  binclude	"theme/bg_chunks/sky_01.bin"
+unk_9B842:  incbin	"theme/bg_chunks/sky_01.bin"
 	align	2
-unk_9B852:  binclude	"theme/bg_chunks/sky_02.bin"
+unk_9B852:  incbin	"theme/bg_chunks/sky_02.bin"
 	align	2
-unk_9B868:  binclude	"theme/bg_chunks/sky_03.bin"
+unk_9B868:  incbin	"theme/bg_chunks/sky_03.bin"
 	align	2
-unk_9B884:  binclude	"theme/bg_chunks/sky_04.bin"
+unk_9B884:  incbin	"theme/bg_chunks/sky_04.bin"
 	align	2
-unk_9B8AC:  binclude	"theme/bg_chunks/sky_05.bin"
+unk_9B8AC:  incbin	"theme/bg_chunks/sky_05.bin"
 	align	2
-unk_9B8BC:  binclude	"theme/bg_chunks/sky_06.bin"
+unk_9B8BC:  incbin	"theme/bg_chunks/sky_06.bin"
 	align	2
-unk_9B8D0:  binclude	"theme/bg_chunks/sky_07.bin"
+unk_9B8D0:  incbin	"theme/bg_chunks/sky_07.bin"
 	align	2
-unk_9B8EA:  binclude	"theme/bg_chunks/sky_08.bin"
+unk_9B8EA:  incbin	"theme/bg_chunks/sky_08.bin"
 	align	2
-unk_9B910:  binclude	"theme/bg_chunks/sky_09.bin"
+unk_9B910:  incbin	"theme/bg_chunks/sky_09.bin"
 	align	2
-unk_9B93C:  binclude	"theme/bg_chunks/sky_0A.bin"
+unk_9B93C:  incbin	"theme/bg_chunks/sky_0A.bin"
 	align	2
-unk_9B974:  binclude	"theme/bg_chunks/sky_0B.bin"
+unk_9B974:  incbin	"theme/bg_chunks/sky_0B.bin"
 	align	2
-unk_9B9C4:  binclude	"theme/bg_chunks/sky_0C.bin"
+unk_9B9C4:  incbin	"theme/bg_chunks/sky_0C.bin"
 	align	2
-unk_9B9DE:  binclude	"theme/bg_chunks/sky_0D.bin"
+unk_9B9DE:  incbin	"theme/bg_chunks/sky_0D.bin"
 	align	2
-unk_9BA1A:  binclude	"theme/bg_chunks/sky_0E.bin"
+unk_9BA1A:  incbin	"theme/bg_chunks/sky_0E.bin"
 	align	2
-unk_9BA2A:  binclude	"theme/bg_chunks/sky_0F.bin"
+unk_9BA2A:  incbin	"theme/bg_chunks/sky_0F.bin"
 	align	2
-unk_9BA32:  binclude	"theme/bg_chunks/sky_10.bin"
+unk_9BA32:  incbin	"theme/bg_chunks/sky_10.bin"
 	align	2
-unk_9BA66:  binclude	"theme/bg_chunks/sky_11.bin"
+unk_9BA66:  incbin	"theme/bg_chunks/sky_11.bin"
 	align	2
-unk_9BA8C:  binclude	"theme/bg_chunks/sky_12.bin"
+unk_9BA8C:  incbin	"theme/bg_chunks/sky_12.bin"
 	align	2
-unk_9BA9C:  binclude	"theme/bg_chunks/sky_13.bin"
+unk_9BA9C:  incbin	"theme/bg_chunks/sky_13.bin"
 	align	2
-unk_9BC08:  binclude	"theme/bg_chunks/sky_14.bin"
+unk_9BC08:  incbin	"theme/bg_chunks/sky_14.bin"
 	align	2
-unk_9BC34:  binclude	"theme/bg_chunks/sky_15.bin"
+unk_9BC34:  incbin	"theme/bg_chunks/sky_15.bin"
 	align	2
-unk_9BC60:  binclude	"theme/bg_chunks/sky_16.bin"
+unk_9BC60:  incbin	"theme/bg_chunks/sky_16.bin"
 	align	2
-unk_9BCB4:  binclude	"theme/bg_chunks/sky_17.bin"
+unk_9BCB4:  incbin	"theme/bg_chunks/sky_17.bin"
 	align	2
-unk_9BDF8:  binclude	"theme/bg_chunks/sky_18.bin"
+unk_9BDF8:  incbin	"theme/bg_chunks/sky_18.bin"
 	align	2
-unk_9BDFE:  binclude	"theme/bg_chunks/sky_19.bin"
+unk_9BDFE:  incbin	"theme/bg_chunks/sky_19.bin"
 	align	2
-unk_9BE08:  binclude	"theme/bg_chunks/sky_1A.bin"
+unk_9BE08:  incbin	"theme/bg_chunks/sky_1A.bin"
 	align	2
-unk_9BE10:  binclude	"theme/bg_chunks/sky_1B.bin"
+unk_9BE10:  incbin	"theme/bg_chunks/sky_1B.bin"
 	align	2
-unk_9BE1E:  binclude	"theme/bg_chunks/sky_1C.bin"
+unk_9BE1E:  incbin	"theme/bg_chunks/sky_1C.bin"
 	align	2
-unk_9BE2E:  binclude	"theme/bg_chunks/sky_1D.bin"
+unk_9BE2E:  incbin	"theme/bg_chunks/sky_1D.bin"
 	align	2
-unk_9BE40:  binclude	"theme/bg_chunks/sky_1E.bin"
+unk_9BE40:  incbin	"theme/bg_chunks/sky_1E.bin"
 	align	2
-unk_9BE58:  binclude	"theme/bg_chunks/sky_1F.bin"
+unk_9BE58:  incbin	"theme/bg_chunks/sky_1F.bin"
 	align	2
-unk_9BE76:  binclude	"theme/bg_chunks/ice_00.bin"
+unk_9BE76:  incbin	"theme/bg_chunks/ice_00.bin"
 	align	2
-unk_9BEF2:  binclude	"theme/bg_chunks/ice_01.bin"
+unk_9BEF2:  incbin	"theme/bg_chunks/ice_01.bin"
 	align	2
-unk_9BF1E:  binclude	"theme/bg_chunks/ice_02.bin"
+unk_9BF1E:  incbin	"theme/bg_chunks/ice_02.bin"
 	align	2
-unk_9BF4A:  binclude	"theme/bg_chunks/ice_03.bin"
+unk_9BF4A:  incbin	"theme/bg_chunks/ice_03.bin"
 	align	2
-unk_9BF9E:  binclude	"theme/bg_chunks/ice_04.bin"
+unk_9BF9E:  incbin	"theme/bg_chunks/ice_04.bin"
 	align	2
-unk_9C01A:  binclude	"theme/bg_chunks/ice_05.bin"
+unk_9C01A:  incbin	"theme/bg_chunks/ice_05.bin"
 	align	2
-unk_9C022:  binclude	"theme/bg_chunks/ice_06.bin"
+unk_9C022:  incbin	"theme/bg_chunks/ice_06.bin"
 	align	2
-unk_9C02C:  binclude	"theme/bg_chunks/ice_07.bin"
+unk_9C02C:  incbin	"theme/bg_chunks/ice_07.bin"
 	align	2
-unk_9C03E:  binclude	"theme/bg_chunks/ice_08.bin"
+unk_9C03E:  incbin	"theme/bg_chunks/ice_08.bin"
 	align	2
-unk_9C058:  binclude	"theme/bg_chunks/ice_09.bin"
+unk_9C058:  incbin	"theme/bg_chunks/ice_09.bin"
 	align	2
-unk_9C07C:  binclude	"theme/bg_chunks/ice_0A.bin"
+unk_9C07C:  incbin	"theme/bg_chunks/ice_0A.bin"
 	align	2
-unk_9C08A:  binclude	"theme/bg_chunks/ice_0B.bin"
+unk_9C08A:  incbin	"theme/bg_chunks/ice_0B.bin"
 	align	2
-unk_9C156:  binclude	"theme/bg_chunks/ice_0C.bin"
+unk_9C156:  incbin	"theme/bg_chunks/ice_0C.bin"
 	align	2
-unk_9C1C6:  binclude	"theme/bg_chunks/ice_0D.bin"
+unk_9C1C6:  incbin	"theme/bg_chunks/ice_0D.bin"
 	align	2
-unk_9C1FA:  binclude	"theme/bg_chunks/ice_0E.bin"
+unk_9C1FA:  incbin	"theme/bg_chunks/ice_0E.bin"
 	align	2
 ; the next 7 chunks seem to be in the wrong format:
 ; each tileID is a word instead of a byte,
@@ -46808,14 +46809,14 @@ unk_9C1FA:  binclude	"theme/bg_chunks/ice_0E.bin"
 ; So these tiles are broken, and they are unused anyway
 ; except for number $14 which is used at the edges of
 ; Diamond Edge and Ice God's Vengeance.
-unk_9C20E:  binclude	"theme/bg_chunks/ice_0F.bin"
+unk_9C20E:  incbin	"theme/bg_chunks/ice_0F.bin"
 	dc.b $2C
 	dc.b   8
 	dc.b $48
 	dc.b   0
 	dc.b $4A
 	align	2
-unk_9C21C:  binclude	"theme/bg_chunks/ice_10.bin"
+unk_9C21C:  incbin	"theme/bg_chunks/ice_10.bin"
 	dc.b   0
 	dc.b $2C
 	dc.b   8
@@ -46827,13 +46828,13 @@ unk_9C21C:  binclude	"theme/bg_chunks/ice_10.bin"
 	dc.b   0
 	dc.b $4A
 	align	2
-unk_9C234:  binclude	"theme/bg_chunks/ice_11.bin"
+unk_9C234:  incbin	"theme/bg_chunks/ice_11.bin"
 	dc.b   0
 	dc.b $5F
 	dc.b   0
 	dc.b $70
 	align	2
-unk_9C240:  binclude	"theme/bg_chunks/ice_12.bin"
+unk_9C240:  incbin	"theme/bg_chunks/ice_12.bin"
 	dc.b   0
 	dc.b $5F
 	dc.b   0
@@ -46843,225 +46844,225 @@ unk_9C240:  binclude	"theme/bg_chunks/ice_12.bin"
 	dc.b   0
 	dc.b $72
 	align	2
-unk_9C254:  binclude	"theme/bg_chunks/ice_13.bin"
+unk_9C254:  incbin	"theme/bg_chunks/ice_13.bin"
 	dc.b   8
 	dc.b $74
 	align	2
-unk_9C25C:  binclude	"theme/bg_chunks/ice_14.bin"
+unk_9C25C:  incbin	"theme/bg_chunks/ice_14.bin"
 	dc.b   0
 	dc.b $70
 	align	2
-unk_9C264:  binclude	"theme/bg_chunks/ice_15.bin"
+unk_9C264:  incbin	"theme/bg_chunks/ice_15.bin"
 	dc.b   0
 	dc.b $70
 	dc.b   0
 	dc.b $70
 	align	2
-unk_9C270:  binclude	"theme/bg_chunks/ice_16.bin"
+unk_9C270:  incbin	"theme/bg_chunks/ice_16.bin"
 	align	2
-unk_9C286:  binclude	"theme/bg_chunks/ice_17.bin"
+unk_9C286:  incbin	"theme/bg_chunks/ice_17.bin"
 	align	2
-unk_9C2AE:  binclude	"theme/bg_chunks/ice_18.bin"
+unk_9C2AE:  incbin	"theme/bg_chunks/ice_18.bin"
 	align	2
-unk_9C30C:  binclude	"theme/bg_chunks/ice_19.bin"
+unk_9C30C:  incbin	"theme/bg_chunks/ice_19.bin"
 	align	2
-unk_9C3A6:  binclude	"theme/bg_chunks/ice_1A.bin"
+unk_9C3A6:  incbin	"theme/bg_chunks/ice_1A.bin"
 	align	2
-unk_9C440:  binclude	"theme/bg_chunks/ice_1B.bin"
+unk_9C440:  incbin	"theme/bg_chunks/ice_1B.bin"
 	align	2
-unk_9C476:  binclude	"theme/bg_chunks/ice_1C.bin"
+unk_9C476:  incbin	"theme/bg_chunks/ice_1C.bin"
 	align	2
-unk_9C4AC:  binclude	"theme/bg_chunks/ice_1D.bin"
+unk_9C4AC:  incbin	"theme/bg_chunks/ice_1D.bin"
 	align	2
-unk_9C4E2:  binclude	"theme/bg_chunks/ice_1E.bin"
+unk_9C4E2:  incbin	"theme/bg_chunks/ice_1E.bin"
 	align	2
-unk_9C518:  binclude	"theme/bg_chunks/ice_1F.bin"
+unk_9C518:  incbin	"theme/bg_chunks/ice_1F.bin"
 	align	2
-unk_9C594:  binclude	"theme/bg_chunks/ice_20.bin"
+unk_9C594:  incbin	"theme/bg_chunks/ice_20.bin"
 	align	2
-unk_9C5C0:  binclude	"theme/bg_chunks/ice_21.bin"
+unk_9C5C0:  incbin	"theme/bg_chunks/ice_21.bin"
 	align	2
-unk_9C5EC:  binclude	"theme/bg_chunks/ice_22.bin"
+unk_9C5EC:  incbin	"theme/bg_chunks/ice_22.bin"
 	align	2
-unk_9C618:  binclude	"theme/bg_chunks/ice_23.bin"
+unk_9C618:  incbin	"theme/bg_chunks/ice_23.bin"
 	align	2
-unk_9C644:  binclude	"theme/bg_chunks/hill_eni_00.bin"
+unk_9C644:  incbin	"theme/bg_chunks/hill_eni_00.bin"
 	align	2
-unk_9C7B6:  binclude	"theme/bg_chunks/hill_eni_01.bin"
+unk_9C7B6:  incbin	"theme/bg_chunks/hill_eni_01.bin"
 	align	2
-unk_9C934:  binclude	"theme/bg_chunks/hill_eni_02.bin"
+unk_9C934:  incbin	"theme/bg_chunks/hill_eni_02.bin"
 	align	2
-unk_9CBAE:  binclude	"theme/bg_chunks/island_00.bin"
+unk_9CBAE:  incbin	"theme/bg_chunks/island_00.bin"
 	align	2
-unk_9CBC6:  binclude	"theme/bg_chunks/island_01.bin"
+unk_9CBC6:  incbin	"theme/bg_chunks/island_01.bin"
 	align	2
-unk_9CBDC:  binclude	"theme/bg_chunks/island_02.bin"
+unk_9CBDC:  incbin	"theme/bg_chunks/island_02.bin"
 	align	2
-unk_9CC0A:  binclude	"theme/bg_chunks/island_03.bin"
+unk_9CC0A:  incbin	"theme/bg_chunks/island_03.bin"
 	align	2
-unk_9CC5C:  binclude	"theme/bg_chunks/island_04.bin"
+unk_9CC5C:  incbin	"theme/bg_chunks/island_04.bin"
 	align	2
-unk_9CC9C:  binclude	"theme/bg_chunks/island_05.bin"
+unk_9CC9C:  incbin	"theme/bg_chunks/island_05.bin"
 	align	2
-unk_9CCB2:  binclude	"theme/bg_chunks/island_06.bin"
+unk_9CCB2:  incbin	"theme/bg_chunks/island_06.bin"
 	align	2
-unk_9CCC6:  binclude	"theme/bg_chunks/island_07.bin"
+unk_9CCC6:  incbin	"theme/bg_chunks/island_07.bin"
 	align	2
-unk_9CCE0:  binclude	"theme/bg_chunks/island_08.bin"
+unk_9CCE0:  incbin	"theme/bg_chunks/island_08.bin"
 	align	2
-unk_9CCEE:  binclude	"theme/bg_chunks/island_09.bin"
+unk_9CCEE:  incbin	"theme/bg_chunks/island_09.bin"
 	align	2
-unk_9CD14:  binclude	"theme/bg_chunks/island_0A.bin"
+unk_9CD14:  incbin	"theme/bg_chunks/island_0A.bin"
 	align	2
-unk_9CD24:  binclude	"theme/bg_chunks/island_0B.bin"
+unk_9CD24:  incbin	"theme/bg_chunks/island_0B.bin"
 	align	2
-unk_9CD3E:  binclude	"theme/bg_chunks/island_0C.bin"
+unk_9CD3E:  incbin	"theme/bg_chunks/island_0C.bin"
 	align	2
-unk_9CD68:  binclude	"theme/bg_chunks/desert_eni_00.bin"
+unk_9CD68:  incbin	"theme/bg_chunks/desert_eni_00.bin"
 	align	2
-unk_9CE0C:  binclude	"theme/bg_chunks/desert_eni_01.bin"
+unk_9CE0C:  incbin	"theme/bg_chunks/desert_eni_01.bin"
 	align	2
-unk_9CEC6:  binclude	"theme/bg_chunks/desert_eni_02.bin"
+unk_9CEC6:  incbin	"theme/bg_chunks/desert_eni_02.bin"
 	align	2
-unk_9D044:  binclude	"theme/bg_chunks/swamp_00.bin"
+unk_9D044:  incbin	"theme/bg_chunks/swamp_00.bin"
 	align	2
-unk_9D0FC:  binclude	"theme/bg_chunks/swamp_01.bin"
+unk_9D0FC:  incbin	"theme/bg_chunks/swamp_01.bin"
 	align	2
-unk_9D114:  binclude	"theme/bg_chunks/swamp_02.bin"
+unk_9D114:  incbin	"theme/bg_chunks/swamp_02.bin"
 	align	2
-unk_9D17C:  binclude	"theme/bg_chunks/swamp_03.bin"
+unk_9D17C:  incbin	"theme/bg_chunks/swamp_03.bin"
 	align	2
-unk_9D234:  binclude	"theme/bg_chunks/swamp_04.bin"
+unk_9D234:  incbin	"theme/bg_chunks/swamp_04.bin"
 	align	2
-unk_9D24C:  binclude	"theme/bg_chunks/swamp_05.bin"
+unk_9D24C:  incbin	"theme/bg_chunks/swamp_05.bin"
 	align	2
-unk_9D2B4:  binclude	"theme/bg_chunks/swamp_06.bin"
+unk_9D2B4:  incbin	"theme/bg_chunks/swamp_06.bin"
 	align	2
-unk_9D36C:  binclude	"theme/bg_chunks/swamp_07.bin"
+unk_9D36C:  incbin	"theme/bg_chunks/swamp_07.bin"
 	align	2
-unk_9D384:  binclude	"theme/bg_chunks/swamp_08.bin"
+unk_9D384:  incbin	"theme/bg_chunks/swamp_08.bin"
 	align	2
-unk_9D3EC:  binclude	"theme/bg_chunks/swamp_09.bin"
+unk_9D3EC:  incbin	"theme/bg_chunks/swamp_09.bin"
 	align	2
-unk_9D4A4:  binclude	"theme/bg_chunks/swamp_0A.bin"
+unk_9D4A4:  incbin	"theme/bg_chunks/swamp_0A.bin"
 	align	2
-unk_9D4BC:  binclude	"theme/bg_chunks/swamp_0B.bin"
+unk_9D4BC:  incbin	"theme/bg_chunks/swamp_0B.bin"
 	align	2
-unk_9D524:  binclude	"theme/bg_chunks/swamp_0C.bin"
+unk_9D524:  incbin	"theme/bg_chunks/swamp_0C.bin"
 	align	2
-unk_9D5DC:  binclude	"theme/bg_chunks/swamp_0D.bin"
+unk_9D5DC:  incbin	"theme/bg_chunks/swamp_0D.bin"
 	align	2
-unk_9D5F4:  binclude	"theme/bg_chunks/swamp_0E.bin"
+unk_9D5F4:  incbin	"theme/bg_chunks/swamp_0E.bin"
 	align	2
-unk_9D65C:  binclude	"theme/bg_chunks/swamp_0F.bin"
+unk_9D65C:  incbin	"theme/bg_chunks/swamp_0F.bin"
 	align	2
-unk_9D726:  binclude	"theme/bg_chunks/swamp_10.bin"
+unk_9D726:  incbin	"theme/bg_chunks/swamp_10.bin"
 	align	2
-unk_9D740:  binclude	"theme/bg_chunks/swamp_11.bin"
+unk_9D740:  incbin	"theme/bg_chunks/swamp_11.bin"
 	align	2
-unk_9D7B2:  binclude	"theme/bg_chunks/swamp_12.bin"
+unk_9D7B2:  incbin	"theme/bg_chunks/swamp_12.bin"
 	align	2
-unk_9D86A:  binclude	"theme/bg_chunks/swamp_13.bin"
+unk_9D86A:  incbin	"theme/bg_chunks/swamp_13.bin"
 	align	2
-unk_9D882:  binclude	"theme/bg_chunks/swamp_14.bin"
+unk_9D882:  incbin	"theme/bg_chunks/swamp_14.bin"
 	align	2
-unk_9D8EA:  binclude	"theme/bg_chunks/swamp_15.bin"
+unk_9D8EA:  incbin	"theme/bg_chunks/swamp_15.bin"
 	align	2
-unk_9D8FE:  binclude	"theme/bg_chunks/swamp_16.bin"
+unk_9D8FE:  incbin	"theme/bg_chunks/swamp_16.bin"
 	align	2
-unk_9D948:  binclude	"theme/bg_chunks/swamp_17.bin"
+unk_9D948:  incbin	"theme/bg_chunks/swamp_17.bin"
 	align	2
-unk_9D992:  binclude	"theme/bg_chunks/swamp_18.bin"
+unk_9D992:  incbin	"theme/bg_chunks/swamp_18.bin"
 	align	2
-unk_9D9DC:  binclude	"theme/bg_chunks/swamp_19.bin"
+unk_9D9DC:  incbin	"theme/bg_chunks/swamp_19.bin"
 	align	2
-unk_9DA26:  binclude	"theme/bg_chunks/swamp_1A.bin"
+unk_9DA26:  incbin	"theme/bg_chunks/swamp_1A.bin"
 	align	2
-unk_9DA3A:  binclude	"theme/bg_chunks/mountain_eni_00.bin"
+unk_9DA3A:  incbin	"theme/bg_chunks/mountain_eni_00.bin"
 	align	2
-unk_9DBF2:  binclude	"theme/bg_chunks/mountain_eni_01.bin"
+unk_9DBF2:  incbin	"theme/bg_chunks/mountain_eni_01.bin"
 	align	2
-unk_9DDC0:  binclude	"theme/bg_chunks/mountain_eni_02.bin"
+unk_9DDC0:  incbin	"theme/bg_chunks/mountain_eni_02.bin"
 	align	2
-unk_9DEAC:  binclude	"theme/bg_chunks/mountain_eni_03.bin"
+unk_9DEAC:  incbin	"theme/bg_chunks/mountain_eni_03.bin"
 	align	2
-unk_9DFAC:  binclude	"theme/bg_chunks/mountain_eni_04.bin"
+unk_9DFAC:  incbin	"theme/bg_chunks/mountain_eni_04.bin"
 	align	2
-unk_9E004:  binclude	"theme/bg_chunks/cave_00.bin"
+unk_9E004:  incbin	"theme/bg_chunks/cave_00.bin"
 	align	2
-unk_9E228:  binclude	"theme/bg_chunks/cave_01.bin"
+unk_9E228:  incbin	"theme/bg_chunks/cave_01.bin"
 	align	2
-unk_9E3CC:  binclude	"theme/bg_chunks/cave_02.bin"
+unk_9E3CC:  incbin	"theme/bg_chunks/cave_02.bin"
 	align	2
-unk_9E4BA:  binclude	"theme/bg_chunks/cave_03.bin"
+unk_9E4BA:  incbin	"theme/bg_chunks/cave_03.bin"
 	align	2
-unk_9E880:  binclude	"theme/bg_chunks/cave_04.bin"
+unk_9E880:  incbin	"theme/bg_chunks/cave_04.bin"
 	align	2
-unk_9E8EC:  binclude	"theme/bg_chunks/cave_05.bin"
+unk_9E8EC:  incbin	"theme/bg_chunks/cave_05.bin"
 	align	2
-unk_9E958:  binclude	"theme/bg_chunks/cave_06.bin"
+unk_9E958:  incbin	"theme/bg_chunks/cave_06.bin"
 	align	2
-unk_9E9B6:  binclude	"theme/bg_chunks/cave_07.bin"
+unk_9E9B6:  incbin	"theme/bg_chunks/cave_07.bin"
 	align	2
-unk_9E9CE:  binclude	"theme/bg_chunks/cave_08.bin"
+unk_9E9CE:  incbin	"theme/bg_chunks/cave_08.bin"
 	align	2
-unk_9E9D8:  binclude	"theme/bg_chunks/cave_09.bin"
+unk_9E9D8:  incbin	"theme/bg_chunks/cave_09.bin"
 	align	2
-unk_9E9DE:  binclude	"theme/bg_chunks/cave_0A.bin"
+unk_9E9DE:  incbin	"theme/bg_chunks/cave_0A.bin"
 	align	2
-unk_9E9E6:  binclude	"theme/bg_chunks/cave_0B.bin"
+unk_9E9E6:  incbin	"theme/bg_chunks/cave_0B.bin"
 	align	2
-unk_9E9EE:  binclude	"theme/bg_chunks/cave_0C.bin"
+unk_9E9EE:  incbin	"theme/bg_chunks/cave_0C.bin"
 	align	2
-unk_9E9FA:  binclude	"theme/bg_chunks/cave_0D.bin"
+unk_9E9FA:  incbin	"theme/bg_chunks/cave_0D.bin"
 	align	2
-unk_9EA76:  binclude	"theme/bg_chunks/cave_0E.bin"
+unk_9EA76:  incbin	"theme/bg_chunks/cave_0E.bin"
 	align	2
-unk_9EAA2:  binclude	"theme/bg_chunks/cave_0F.bin"
+unk_9EAA2:  incbin	"theme/bg_chunks/cave_0F.bin"
 	align	2
-unk_9EB1E:  binclude	"theme/bg_chunks/cave_10.bin"
+unk_9EB1E:  incbin	"theme/bg_chunks/cave_10.bin"
 	align	2
-unk_9EB72:  binclude	"theme/bg_chunks/cave_11.bin"
+unk_9EB72:  incbin	"theme/bg_chunks/cave_11.bin"
 	align	2
-unk_9EB9E:  binclude	"theme/bg_chunks/cave_12.bin"
+unk_9EB9E:  incbin	"theme/bg_chunks/cave_12.bin"
 	align	2
-unk_9EBCA:  binclude	"theme/bg_chunks/cave_13.bin"
+unk_9EBCA:  incbin	"theme/bg_chunks/cave_13.bin"
 	align	2
-unk_9EBF6:  binclude	"theme/bg_chunks/cave_14.bin"
+unk_9EBF6:  incbin	"theme/bg_chunks/cave_14.bin"
 	align	2
-unk_9EC22:  binclude	"theme/bg_chunks/forest_eni_00.bin"
+unk_9EC22:  incbin	"theme/bg_chunks/forest_eni_00.bin"
 	align	2
-unk_9EDAA:  binclude	"theme/bg_chunks/forest_eni_01.bin"
+unk_9EDAA:  incbin	"theme/bg_chunks/forest_eni_01.bin"
 	align	2
-unk_9EF3E:  binclude	"theme/bg_chunks/forest_eni_02.bin"
+unk_9EF3E:  incbin	"theme/bg_chunks/forest_eni_02.bin"
 	align	2
-unk_9F124:  binclude	"theme/bg_chunks/city_00.bin"
+unk_9F124:  incbin	"theme/bg_chunks/city_00.bin"
 	align	2
-unk_9F144:  binclude	"theme/bg_chunks/city_01.bin"
+unk_9F144:  incbin	"theme/bg_chunks/city_01.bin"
 	align	2
-unk_9F164:  binclude	"theme/bg_chunks/city_02.bin"
+unk_9F164:  incbin	"theme/bg_chunks/city_02.bin"
 	align	2
-unk_9F258:  binclude	"theme/bg_chunks/city_03.bin"
+unk_9F258:  incbin	"theme/bg_chunks/city_03.bin"
 	align	2
-unk_9F34C:  binclude	"theme/bg_chunks/city_04.bin"
+unk_9F34C:  incbin	"theme/bg_chunks/city_04.bin"
 	align	2
-unk_9F436:  binclude	"theme/bg_chunks/city_05.bin"
+unk_9F436:  incbin	"theme/bg_chunks/city_05.bin"
 	align	2
-unk_9F534:  binclude	"theme/bg_chunks/city_06.bin"
+unk_9F534:  incbin	"theme/bg_chunks/city_06.bin"
 	align	2
-unk_9F61E:  binclude	"theme/bg_chunks/city_07.bin"
+unk_9F61E:  incbin	"theme/bg_chunks/city_07.bin"
 	align	2
-unk_9F6B8:  binclude	"theme/bg_chunks/city_08.bin"
+unk_9F6B8:  incbin	"theme/bg_chunks/city_08.bin"
 	align	2
-unk_9F7C0:  binclude	"theme/bg_chunks/city_09.bin"
+unk_9F7C0:  incbin	"theme/bg_chunks/city_09.bin"
 	align	2
-unk_9F88C:  binclude	"theme/bg_chunks/city_0A.bin"
+unk_9F88C:  incbin	"theme/bg_chunks/city_0A.bin"
 	align	2
-unk_9F912:  binclude	"theme/bg_chunks/city_0B.bin"
+unk_9F912:  incbin	"theme/bg_chunks/city_0B.bin"
 	align	2
-unk_9F998:  binclude	"theme/bg_chunks/city_0C.bin"
+unk_9F998:  incbin	"theme/bg_chunks/city_0C.bin"
 	align	2
-unk_9F9EC:  binclude	"theme/bg_chunks/city_0D.bin"
+unk_9F9EC:  incbin	"theme/bg_chunks/city_0D.bin"
 	align	2
 
 	include	"level/bgscroll_includes.asm"
@@ -47069,7 +47070,7 @@ unk_9F9EC:  binclude	"theme/bg_chunks/city_0D.bin"
 ; filler
     rept 133
 	dc.b	$FF
-    endm
+    endr
     	align	2
 
 Data_Index:	dc.l 0
@@ -48254,117 +48255,117 @@ LnkTo_unk_E11BE:	dc.l unk_E11BE
 			dc.l unk_E11CE
 			dc.l unk_E11D6
 
-Pal_A1C72:  binclude	"ingame/palette_kid/Kid.bin"
-Pal_A1C8A:  binclude	"ingame/palette_kid/Maniaxe.bin"
-Pal_A1CA2:  binclude	"ingame/palette_kid/Maniaxe_Helmet.bin"
-Pal_A1CA8:  binclude	"ingame/palette_kid/Maniaxe_Transformation.bin"
-Pal_A1CC6:  binclude	"ingame/palette_kid/Maniaxe_Transformation_copy.bin"
-Pal_A1CE4:  binclude	"ingame/palette_kid/Skycutter.bin"
-Pal_A1D02:  binclude	"ingame/palette_kid/Skycutter_Helmet.bin"
-Pal_A1D08:  binclude	"ingame/palette_kid/Skycutter_Transformation.bin"
-Pal_A1D26:  binclude	"ingame/palette_kid/Micromax.bin"
-Pal_A1D44:  binclude	"ingame/palette_kid/Micromax_Helmet.bin"
-Pal_A1D4A:  binclude	"ingame/palette_kid/Micromax_Transformation.bin"
-Pal_A1D68:  binclude	"ingame/palette_kid/Berzerker.bin"
-Pal_A1D80:  binclude	"ingame/palette_kid/Berzerker_Helmet.bin"
-Pal_A1D86:  binclude	"ingame/palette_kid/Berzerker_Transformation.bin"
-Pal_A1DA4:  binclude	"ingame/palette_kid/Red_Stealth.bin"
-Pal_A1DBC:  binclude	"ingame/palette_kid/Red_Stealth_Helmet.bin"
-Pal_A1DC2:  binclude	"ingame/palette_kid/Red_Stealth_Transformation.bin"
-Pal_A1DE0:  binclude	"ingame/palette_kid/Eyeclops.bin"
-Pal_A1DF8:  binclude	"ingame/palette_kid/Eyeclops_Helmet.bin"
-Pal_A1DFE:  binclude	"ingame/palette_kid/Eyeclops_Transformation.bin"
-Pal_A1E1C:  binclude	"ingame/palette_kid/Cyclone.bin"
-Pal_A1E34:  binclude	"ingame/palette_kid/Cyclone_Helmet.bin"
-Pal_A1E3A:  binclude	"ingame/palette_kid/Cyclone_Transformation.bin"
-Pal_A1E58:  binclude	"ingame/palette_kid/Juggernaut.bin"
-Pal_A1E70:  binclude	"ingame/palette_kid/Juggernaut_Helmet.bin"
-Pal_A1E76:  binclude	"ingame/palette_kid/Juggernaut_Transformation.bin"
-Pal_A1E94:  binclude	"ingame/palette_kid/Iron_Knight.bin"
-Pal_A1EAC:  binclude	"ingame/palette_kid/Iron_Knight_Helmet.bin"
-Pal_A1EB2:  binclude	"ingame/palette_kid/Iron_Knight_Transformation.bin"
-Pal_A1ED0:  binclude	"ingame/palette_enemy/Dragon_1.bin"
-Pal_A1EDE:  binclude	"ingame/palette_enemy/Dragon_2.bin"
-Pal_A1EEC:  binclude	"ingame/palette_enemy/Dragon_3.bin"
-Pal_A1EFA:  binclude	"ingame/palette_enemy/Orca_1.bin"
-Pal_A1F08:  binclude	"ingame/palette_enemy/Armadillo_1.bin"
-Pal_A1F16:  binclude	"ingame/palette_enemy/Armadillo_2.bin"
-Pal_A1F24:  binclude	"ingame/palette_enemy/Armadillo_3.bin"
-Pal_A1F32:  binclude	"ingame/palette_enemy/Fire_Demon_1_1.bin"
-Pal_A1F40:  binclude	"ingame/palette_enemy/Fire_Demon_1_2.bin"
-Pal_A1F4E:  binclude	"ingame/palette_enemy/Fire_Demon_1_3.bin"
-Pal_A1F5C:  binclude	"ingame/palette_enemy/Fire_Demon_2_1.bin"
-Pal_A1F6A:  binclude	"ingame/palette_enemy/Fire_Demon_2_2.bin"
-Pal_A1F78:  binclude	"ingame/palette_enemy/Fire_Demon_2_3.bin"
-Pal_A1F86:  binclude	"ingame/palette_enemy/Fire_Demon_3_1.bin"
-Pal_A1F94:  binclude	"ingame/palette_enemy/Fire_Demon_3_2.bin"
-Pal_A1FA2:  binclude	"ingame/palette_enemy/Fire_Demon_3_3.bin"
-Pal_A1FB0:  binclude	"ingame/palette_enemy/Tar_Monster_1.bin"
-Pal_A1FBE:  binclude	"ingame/palette_enemy/Tar_Monster_3.bin"
-Pal_A1FCC:  binclude	"ingame/palette_enemy/Tar_Monster_2.bin"
-Pal_A1FDA:  binclude	"ingame/palette_enemy/Tornado_1.bin"
-Pal_A1FE8:  binclude	"ingame/palette_enemy/Tornado_2.bin"
-Pal_A1FF6:  binclude	"ingame/palette_enemy/Tornado_3.bin"
-Pal_A2004:  binclude	"ingame/palette_enemy/Cloud_1.bin"
-Pal_A2012:  binclude	"ingame/palette_enemy/Cloud_2.bin"
-Pal_A2020:  binclude	"ingame/palette_enemy/Cloud_3.bin"
-Pal_A202E:  binclude	"ingame/palette_enemy/Fireball_1.bin"
-Pal_A203C:  binclude	"ingame/palette_enemy/Fireball_2.bin"
-Pal_A204A:  binclude	"ingame/palette_enemy/Fireball_3.bin"
-Pal_A2058:  binclude	"ingame/palette_enemy/Hand_1.bin"
-Pal_A2066:  binclude	"ingame/palette_enemy/Hand_2.bin"
-Pal_A2074:  binclude	"ingame/palette_enemy/Hand_3.bin"
-Pal_A2082:  binclude	"ingame/palette_enemy/Drips_1.bin"
-Pal_A2090:  binclude	"ingame/palette_enemy/Drips_3.bin"
-Pal_A209E:  binclude	"ingame/palette_enemy/Drips_2.bin"
-Pal_A20AC:  binclude	"ingame/palette_enemy/Crab_1.bin"
-Pal_A20BA:  binclude	"ingame/palette_enemy/Crab_2.bin"
-Pal_A20C8:  binclude	"ingame/palette_enemy/Crab_3.bin"
-Pal_A20D6:  binclude	"ingame/palette_enemy/Goat_1.bin"
-Pal_A20E4:  binclude	"ingame/palette_enemy/Goat_2.bin"
-Pal_A20F2:  binclude	"ingame/palette_enemy/Goat_3.bin"
-Pal_A2100:  binclude	"ingame/palette_enemy/Spinning_Twins_1.bin"
-Pal_A210E:  binclude	"ingame/palette_enemy/Spinning_Twins_2.bin"
-Pal_A211C:  binclude	"ingame/palette_enemy/Spinning_Twins_3.bin"
-Pal_A212A:  binclude	"ingame/palette_enemy/Ninja_1.bin"
-Pal_A2138:  binclude	"ingame/palette_enemy/Ninja_2.bin"
-Pal_A2146:  binclude	"ingame/palette_enemy/Ninja_3.bin"
-Pal_A2154:  binclude	"ingame/palette_enemy/Scorpion_1.bin"
-Pal_A2162:  binclude	"ingame/palette_enemy/Scorpion_3.bin"
-Pal_A2170:  binclude	"ingame/palette_enemy/Scorpion_2.bin"
-Pal_A217E:  binclude	"ingame/palette_enemy/Lion_1.bin"
-Pal_A219C:  binclude	"ingame/palette_enemy/Lion_2.bin"
-Pal_A21BA:  binclude	"ingame/palette_enemy/Lion_3.bin"
-Pal_A21D8:  binclude	"ingame/palette_enemy/Rock_tank_1.bin"
-Pal_A21E6:  binclude	"ingame/palette_enemy/Rock_tank_2.bin"
-Pal_A21F4:  binclude	"ingame/palette_enemy/Rock_tank_3.bin"
-Pal_A2202:  binclude	"ingame/palette_enemy/Emo_Rock_1.bin"
-Pal_A2210:  binclude	"ingame/palette_enemy/Emo_Rock_2.bin"
-Pal_A221E:  binclude	"ingame/palette_enemy/Emo_Rock_3.bin"
-Pal_A222C:  binclude	"ingame/palette_enemy/Big_Hopping_Skull_1.bin"
-Pal_A223A:  binclude	"ingame/palette_enemy/Big_Hopping_Skull_2.bin"
-Pal_A2248:  binclude	"ingame/palette_enemy/Big_Hopping_Skull_3.bin"
-Pal_A2256:  binclude	"ingame/palette_enemy/Mini_Hopping_Skull_1.bin"
-Pal_A2264:  binclude	"ingame/palette_enemy/Mini_Hopping_Skull_2.bin"
-Pal_A2272:  binclude	"ingame/palette_enemy/Mini_Hopping_Skull_3.bin"
-Pal_A2280:  binclude	"ingame/palette_enemy/Drill_1.bin"
-Pal_A228E:  binclude	"ingame/palette_enemy/Drill_2.bin"
-Pal_A229C:  binclude	"ingame/palette_enemy/Drill_3.bin"
-Pal_A22AA:  binclude	"ingame/palette_enemy/Sphere_1.bin"
-Pal_A22B8:  binclude	"ingame/palette_enemy/Sphere_3.bin"
-Pal_A22C6:  binclude	"ingame/palette_enemy/Sphere_2.bin"
-Pal_A22D4:  binclude	"ingame/palette_enemy/Crystal_1.bin"
-Pal_A22E2:  binclude	"ingame/palette_enemy/Crystal_2.bin"
-Pal_A22F0:  binclude	"ingame/palette_enemy/Crystal_3.bin"
-Pal_A22FE:  binclude	"ingame/palette_enemy/Archer_1.bin"
-Pal_A230C:  binclude	"ingame/palette_enemy/Archer_2.bin"
-Pal_A231A:  binclude	"ingame/palette_enemy/Archer_3.bin"
-Pal_A2328:  binclude	"ingame/palette_enemy/UFO_1.bin"
-Pal_A2346:  binclude	"ingame/palette_enemy/UFO_2.bin"
-Pal_A2364:  binclude	"ingame/palette_enemy/UFO_3.bin"
-Pal_A2382:  binclude	"ingame/palette_enemy/Plethora.bin"
-Pal_A23A0:  binclude	"ingame/palette_enemy/Boss_Eyes.bin"
-Pal_A23AE:  binclude	"ingame/palette_enemy/Boss.bin"
+Pal_A1C72:  incbin	"ingame/palette_kid/Kid.bin"
+Pal_A1C8A:  incbin	"ingame/palette_kid/Maniaxe.bin"
+Pal_A1CA2:  incbin	"ingame/palette_kid/Maniaxe_Helmet.bin"
+Pal_A1CA8:  incbin	"ingame/palette_kid/Maniaxe_Transformation.bin"
+Pal_A1CC6:  incbin	"ingame/palette_kid/Maniaxe_Transformation_copy.bin"
+Pal_A1CE4:  incbin	"ingame/palette_kid/Skycutter.bin"
+Pal_A1D02:  incbin	"ingame/palette_kid/Skycutter_Helmet.bin"
+Pal_A1D08:  incbin	"ingame/palette_kid/Skycutter_Transformation.bin"
+Pal_A1D26:  incbin	"ingame/palette_kid/Micromax.bin"
+Pal_A1D44:  incbin	"ingame/palette_kid/Micromax_Helmet.bin"
+Pal_A1D4A:  incbin	"ingame/palette_kid/Micromax_Transformation.bin"
+Pal_A1D68:  incbin	"ingame/palette_kid/Berzerker.bin"
+Pal_A1D80:  incbin	"ingame/palette_kid/Berzerker_Helmet.bin"
+Pal_A1D86:  incbin	"ingame/palette_kid/Berzerker_Transformation.bin"
+Pal_A1DA4:  incbin	"ingame/palette_kid/Red_Stealth.bin"
+Pal_A1DBC:  incbin	"ingame/palette_kid/Red_Stealth_Helmet.bin"
+Pal_A1DC2:  incbin	"ingame/palette_kid/Red_Stealth_Transformation.bin"
+Pal_A1DE0:  incbin	"ingame/palette_kid/Eyeclops.bin"
+Pal_A1DF8:  incbin	"ingame/palette_kid/Eyeclops_Helmet.bin"
+Pal_A1DFE:  incbin	"ingame/palette_kid/Eyeclops_Transformation.bin"
+Pal_A1E1C:  incbin	"ingame/palette_kid/Cyclone.bin"
+Pal_A1E34:  incbin	"ingame/palette_kid/Cyclone_Helmet.bin"
+Pal_A1E3A:  incbin	"ingame/palette_kid/Cyclone_Transformation.bin"
+Pal_A1E58:  incbin	"ingame/palette_kid/Juggernaut.bin"
+Pal_A1E70:  incbin	"ingame/palette_kid/Juggernaut_Helmet.bin"
+Pal_A1E76:  incbin	"ingame/palette_kid/Juggernaut_Transformation.bin"
+Pal_A1E94:  incbin	"ingame/palette_kid/Iron_Knight.bin"
+Pal_A1EAC:  incbin	"ingame/palette_kid/Iron_Knight_Helmet.bin"
+Pal_A1EB2:  incbin	"ingame/palette_kid/Iron_Knight_Transformation.bin"
+Pal_A1ED0:  incbin	"ingame/palette_enemy/Dragon_1.bin"
+Pal_A1EDE:  incbin	"ingame/palette_enemy/Dragon_2.bin"
+Pal_A1EEC:  incbin	"ingame/palette_enemy/Dragon_3.bin"
+Pal_A1EFA:  incbin	"ingame/palette_enemy/Orca_1.bin"
+Pal_A1F08:  incbin	"ingame/palette_enemy/Armadillo_1.bin"
+Pal_A1F16:  incbin	"ingame/palette_enemy/Armadillo_2.bin"
+Pal_A1F24:  incbin	"ingame/palette_enemy/Armadillo_3.bin"
+Pal_A1F32:  incbin	"ingame/palette_enemy/Fire_Demon_1_1.bin"
+Pal_A1F40:  incbin	"ingame/palette_enemy/Fire_Demon_1_2.bin"
+Pal_A1F4E:  incbin	"ingame/palette_enemy/Fire_Demon_1_3.bin"
+Pal_A1F5C:  incbin	"ingame/palette_enemy/Fire_Demon_2_1.bin"
+Pal_A1F6A:  incbin	"ingame/palette_enemy/Fire_Demon_2_2.bin"
+Pal_A1F78:  incbin	"ingame/palette_enemy/Fire_Demon_2_3.bin"
+Pal_A1F86:  incbin	"ingame/palette_enemy/Fire_Demon_3_1.bin"
+Pal_A1F94:  incbin	"ingame/palette_enemy/Fire_Demon_3_2.bin"
+Pal_A1FA2:  incbin	"ingame/palette_enemy/Fire_Demon_3_3.bin"
+Pal_A1FB0:  incbin	"ingame/palette_enemy/Tar_Monster_1.bin"
+Pal_A1FBE:  incbin	"ingame/palette_enemy/Tar_Monster_3.bin"
+Pal_A1FCC:  incbin	"ingame/palette_enemy/Tar_Monster_2.bin"
+Pal_A1FDA:  incbin	"ingame/palette_enemy/Tornado_1.bin"
+Pal_A1FE8:  incbin	"ingame/palette_enemy/Tornado_2.bin"
+Pal_A1FF6:  incbin	"ingame/palette_enemy/Tornado_3.bin"
+Pal_A2004:  incbin	"ingame/palette_enemy/Cloud_1.bin"
+Pal_A2012:  incbin	"ingame/palette_enemy/Cloud_2.bin"
+Pal_A2020:  incbin	"ingame/palette_enemy/Cloud_3.bin"
+Pal_A202E:  incbin	"ingame/palette_enemy/Fireball_1.bin"
+Pal_A203C:  incbin	"ingame/palette_enemy/Fireball_2.bin"
+Pal_A204A:  incbin	"ingame/palette_enemy/Fireball_3.bin"
+Pal_A2058:  incbin	"ingame/palette_enemy/Hand_1.bin"
+Pal_A2066:  incbin	"ingame/palette_enemy/Hand_2.bin"
+Pal_A2074:  incbin	"ingame/palette_enemy/Hand_3.bin"
+Pal_A2082:  incbin	"ingame/palette_enemy/Drips_1.bin"
+Pal_A2090:  incbin	"ingame/palette_enemy/Drips_3.bin"
+Pal_A209E:  incbin	"ingame/palette_enemy/Drips_2.bin"
+Pal_A20AC:  incbin	"ingame/palette_enemy/Crab_1.bin"
+Pal_A20BA:  incbin	"ingame/palette_enemy/Crab_2.bin"
+Pal_A20C8:  incbin	"ingame/palette_enemy/Crab_3.bin"
+Pal_A20D6:  incbin	"ingame/palette_enemy/Goat_1.bin"
+Pal_A20E4:  incbin	"ingame/palette_enemy/Goat_2.bin"
+Pal_A20F2:  incbin	"ingame/palette_enemy/Goat_3.bin"
+Pal_A2100:  incbin	"ingame/palette_enemy/Spinning_Twins_1.bin"
+Pal_A210E:  incbin	"ingame/palette_enemy/Spinning_Twins_2.bin"
+Pal_A211C:  incbin	"ingame/palette_enemy/Spinning_Twins_3.bin"
+Pal_A212A:  incbin	"ingame/palette_enemy/Ninja_1.bin"
+Pal_A2138:  incbin	"ingame/palette_enemy/Ninja_2.bin"
+Pal_A2146:  incbin	"ingame/palette_enemy/Ninja_3.bin"
+Pal_A2154:  incbin	"ingame/palette_enemy/Scorpion_1.bin"
+Pal_A2162:  incbin	"ingame/palette_enemy/Scorpion_3.bin"
+Pal_A2170:  incbin	"ingame/palette_enemy/Scorpion_2.bin"
+Pal_A217E:  incbin	"ingame/palette_enemy/Lion_1.bin"
+Pal_A219C:  incbin	"ingame/palette_enemy/Lion_2.bin"
+Pal_A21BA:  incbin	"ingame/palette_enemy/Lion_3.bin"
+Pal_A21D8:  incbin	"ingame/palette_enemy/Rock_tank_1.bin"
+Pal_A21E6:  incbin	"ingame/palette_enemy/Rock_tank_2.bin"
+Pal_A21F4:  incbin	"ingame/palette_enemy/Rock_tank_3.bin"
+Pal_A2202:  incbin	"ingame/palette_enemy/Emo_Rock_1.bin"
+Pal_A2210:  incbin	"ingame/palette_enemy/Emo_Rock_2.bin"
+Pal_A221E:  incbin	"ingame/palette_enemy/Emo_Rock_3.bin"
+Pal_A222C:  incbin	"ingame/palette_enemy/Big_Hopping_Skull_1.bin"
+Pal_A223A:  incbin	"ingame/palette_enemy/Big_Hopping_Skull_2.bin"
+Pal_A2248:  incbin	"ingame/palette_enemy/Big_Hopping_Skull_3.bin"
+Pal_A2256:  incbin	"ingame/palette_enemy/Mini_Hopping_Skull_1.bin"
+Pal_A2264:  incbin	"ingame/palette_enemy/Mini_Hopping_Skull_2.bin"
+Pal_A2272:  incbin	"ingame/palette_enemy/Mini_Hopping_Skull_3.bin"
+Pal_A2280:  incbin	"ingame/palette_enemy/Drill_1.bin"
+Pal_A228E:  incbin	"ingame/palette_enemy/Drill_2.bin"
+Pal_A229C:  incbin	"ingame/palette_enemy/Drill_3.bin"
+Pal_A22AA:  incbin	"ingame/palette_enemy/Sphere_1.bin"
+Pal_A22B8:  incbin	"ingame/palette_enemy/Sphere_3.bin"
+Pal_A22C6:  incbin	"ingame/palette_enemy/Sphere_2.bin"
+Pal_A22D4:  incbin	"ingame/palette_enemy/Crystal_1.bin"
+Pal_A22E2:  incbin	"ingame/palette_enemy/Crystal_2.bin"
+Pal_A22F0:  incbin	"ingame/palette_enemy/Crystal_3.bin"
+Pal_A22FE:  incbin	"ingame/palette_enemy/Archer_1.bin"
+Pal_A230C:  incbin	"ingame/palette_enemy/Archer_2.bin"
+Pal_A231A:  incbin	"ingame/palette_enemy/Archer_3.bin"
+Pal_A2328:  incbin	"ingame/palette_enemy/UFO_1.bin"
+Pal_A2346:  incbin	"ingame/palette_enemy/UFO_2.bin"
+Pal_A2364:  incbin	"ingame/palette_enemy/UFO_3.bin"
+Pal_A2382:  incbin	"ingame/palette_enemy/Plethora.bin"
+Pal_A23A0:  incbin	"ingame/palette_enemy/Boss_Eyes.bin"
+Pal_A23AE:  incbin	"ingame/palette_enemy/Boss.bin"
 unk_A23CC:  sprite_frame_unc    $0B, $00, $17, $1F, "ingame/artunc_kid/kid_slope_7.bin"
 unk_A2552:  sprite_frame_unc    $0C, $FE, $16, $1E, "ingame/artunc_kid/kid_slope_8.bin"
 unk_A26D8:  sprite_frame_unc    $0A, $FF, $15, $20, "ingame/artunc_kid/kid_slope_9.bin"
@@ -49271,36 +49272,36 @@ unk_C87E8:  sprite_frame_vram   $0A4, $00, $00, $08, $18
 unk_C87F0:  sprite_frame_vram   $0A7, $00, $00, $10, $18
 unk_C87F8:  sprite_frame_vram   $0AD, $00, $00, $08, $08
 
-unk_C8800:  binclude    "ingame/artcomp/Enemy0C_Dragon.bin"
-unk_CA1ED:  binclude    "ingame/artcomp/Enemy08_Orca.bin"
-unk_CAD8E:  binclude    "ingame/artcomp/Enemy04_Armadillo.bin"
-unk_CBC1C:  binclude    "ingame/artcomp/Enemy00_Fire_demon.bin"
-unk_CC7E0:  binclude    "ingame/artcomp/Enemy18_Tornado.bin"
-unk_CCD87:  binclude    "ingame/artcomp/Enemy05_Tar_monster.bin"
-unk_CDAB8:  binclude    "ingame/artcomp/Enemy0E_Cloud.bin"
-unk_CE944:  binclude    "ingame/artcomp/Enemy19_Fireball.bin"
-unk_CF02F:  binclude    "ingame/artcomp/Enemy17_Hand.bin"
-unk_CF71D:  binclude    "ingame/artcomp/Enemy16_Drip.bin"
-unk_D03E2:  binclude    "ingame/artcomp/Enemy09_Crab.bin"
-unk_D0B79:  binclude    "ingame/artcomp/Enemy10_Goat.bin"
-unk_D1ED8:  binclude    "ingame/artcomp/Enemy14_Spinning_twins.bin"
-unk_D3151:  binclude    "ingame/artcomp/Enemy11_Ninja.bin"
-unk_D3D94:  binclude    "ingame/artcomp/Enemy13_Scorpion.bin"
-unk_D4ED3:  binclude    "ingame/artcomp/Enemy12_Lion.bin"
-unk_D744D:  binclude    "ingame/artcomp/Enemy07_Archer.bin"
-unk_D8176:  binclude    "ingame/artcomp/Enemy0A_Rock_tank.bin"
-unk_D88E7:  binclude    "ingame/artcomp/Enemy1B_Emo_rock.bin"
-unk_D985D:  binclude    "ingame/artcomp/Enemy1D_Big_hopping_skull.bin"
-unk_DA75D:  binclude    "ingame/artcomp/Enemy1C_Mini_hopping_skull.bin"
-unk_DACAB:  binclude    "ingame/artcomp/Enemy1A_Driller.bin"
-unk_DB03A:  binclude    "ingame/artcomp/Enemy06_Sphere.bin"
-unk_DB2BC:  binclude    "ingame/artcomp/Enemy01_Diamond.bin"
-unk_DBA4D:  binclude    "ingame/artcomp/Enemy03_Robot.bin"
-unk_DC579:  binclude    "ingame/artcomp/Enemy0F_UFO.bin"
-unk_DD8BB:  binclude    "ingame/artcomp/Enemy20_Heady_Metal.bin"
-unk_DE3E3:  binclude    "ingame/artcomp/Enemy21_Boss_eyes_or_attacks.bin"
-unk_DEA20:  binclude    "ingame/artcomp/Enemy22_Boss_head_stick_boomerangs_arrows.bin"
-unk_E06B5:  binclude    "scenes/artcomp/End_level_stats_text.bin"
+unk_C8800:  incbin    "ingame/artcomp/Enemy0C_Dragon.bin"
+unk_CA1ED:  incbin    "ingame/artcomp/Enemy08_Orca.bin"
+unk_CAD8E:  incbin    "ingame/artcomp/Enemy04_Armadillo.bin"
+unk_CBC1C:  incbin    "ingame/artcomp/Enemy00_Fire_demon.bin"
+unk_CC7E0:  incbin    "ingame/artcomp/Enemy18_Tornado.bin"
+unk_CCD87:  incbin    "ingame/artcomp/Enemy05_Tar_monster.bin"
+unk_CDAB8:  incbin    "ingame/artcomp/Enemy0E_Cloud.bin"
+unk_CE944:  incbin    "ingame/artcomp/Enemy19_Fireball.bin"
+unk_CF02F:  incbin    "ingame/artcomp/Enemy17_Hand.bin"
+unk_CF71D:  incbin    "ingame/artcomp/Enemy16_Drip.bin"
+unk_D03E2:  incbin    "ingame/artcomp/Enemy09_Crab.bin"
+unk_D0B79:  incbin    "ingame/artcomp/Enemy10_Goat.bin"
+unk_D1ED8:  incbin    "ingame/artcomp/Enemy14_Spinning_twins.bin"
+unk_D3151:  incbin    "ingame/artcomp/Enemy11_Ninja.bin"
+unk_D3D94:  incbin    "ingame/artcomp/Enemy13_Scorpion.bin"
+unk_D4ED3:  incbin    "ingame/artcomp/Enemy12_Lion.bin"
+unk_D744D:  incbin    "ingame/artcomp/Enemy07_Archer.bin"
+unk_D8176:  incbin    "ingame/artcomp/Enemy0A_Rock_tank.bin"
+unk_D88E7:  incbin    "ingame/artcomp/Enemy1B_Emo_rock.bin"
+unk_D985D:  incbin    "ingame/artcomp/Enemy1D_Big_hopping_skull.bin"
+unk_DA75D:  incbin    "ingame/artcomp/Enemy1C_Mini_hopping_skull.bin"
+unk_DACAB:  incbin    "ingame/artcomp/Enemy1A_Driller.bin"
+unk_DB03A:  incbin    "ingame/artcomp/Enemy06_Sphere.bin"
+unk_DB2BC:  incbin    "ingame/artcomp/Enemy01_Diamond.bin"
+unk_DBA4D:  incbin    "ingame/artcomp/Enemy03_Robot.bin"
+unk_DC579:  incbin    "ingame/artcomp/Enemy0F_UFO.bin"
+unk_DD8BB:  incbin    "ingame/artcomp/Enemy20_Heady_Metal.bin"
+unk_DE3E3:  incbin    "ingame/artcomp/Enemy21_Boss_eyes_or_attacks.bin"
+unk_DEA20:  incbin    "ingame/artcomp/Enemy22_Boss_head_stick_boomerangs_arrows.bin"
+unk_E06B5:  incbin    "scenes/artcomp/End_level_stats_text.bin"
 	align	2
 unk_E0E4E:  sprite_frame_vram   $220, $00, $10, $10, $10
 unk_E0E56:  sprite_frame_vram   $224, $00, $10, $10, $10
@@ -49420,27 +49421,27 @@ unk_E11D6:  sprite_frame_vram   $018, $08, $00, $10, $1E
 ; filler
     rept 294
 	dc.b	$FF
-    endm
+    endr
 
 ; =============== S U B	R O U T	I N E =======================================
 
 ;E1304
 j__gemsholdz80:	;	stub, no longer needed
 	rts
-;	jmp	_gemsdmastart(pc)
+;	jmp	gemsdmastart(pc)
 
 ; ---------------------------------------------------------------------------
 
 ;E1308
 j__gemsreleasez80:	;	stub, no longer needed
 	rts
-;	jmp	_gemsdmaend(pc)
-;	jmp	_gemsholdz80(pc)
-;	jmp	_gemsreleasez80(pc)
-;	jmp	_gemsloadz80(pc)
-;	jmp	_gemsstartz80(pc)
-;	jmp	_gemsputcbyte(pc)
-;	jmp	_gemsputptr(pc)
+;	jmp	gemsdmaend(pc)
+;	jmp	gemsholdz80(pc)
+;	jmp	gemsreleasez80(pc)
+;	jmp	gemsloadz80(pc)
+;	jmp	gemsstartz80(pc)
+;	jmp	gemsputcbyte(pc)
+;	jmp	gemsputptr(pc)
 
 ; =============== S U B	R O U T	I N E =======================================
 
@@ -49448,7 +49449,7 @@ j__gemsreleasez80:	;	stub, no longer needed
 
 j__gemsinit:	;	stub, no longer needed
 	rts
-;	jmp	_gemsinit(pc)
+;	jmp	gemsinit(pc)
 ; End of function j__gemsinit
 
 
@@ -49486,7 +49487,7 @@ j_ChangeTempo:
 
 j__gemspauseall:	;	temp stub
 	rts
-;	jmp	_gemspauseall(pc)
+;	jmp	gemspauseall(pc)
 ; End of function j__gemspauseall
 
 
@@ -49496,7 +49497,7 @@ j__gemspauseall:	;	temp stub
 
 j__gemsresumeall:	;	temp stub
 	rts
-;	jmp	_gemsresumeall(pc)
+;	jmp	gemsresumeall(pc)
 ; End of function j__gemsresumeall
 
 
@@ -49507,7 +49508,7 @@ j__gemsresumeall:	;	temp stub
 PlaySound:	;	temp stub
 ;	move.l	a0,-(sp)
 ;	move.l	d0,-(sp)
-;	bsr.w	_gemsstartsong
+;	bsr.w	gemsstartsong
 ;	move.l	(sp)+,d0
 ;	move.l	(sp)+,a0
 	rts
@@ -49519,7 +49520,7 @@ PlaySound:	;	temp stub
 PlaySound2:	;	temp stub
 ;	move.l	a0,-(sp)
 ;	move.l	d0,-(sp)
-;	bsr.w	_gemsstopsong
+;	bsr.w	gemsstopsong
 ;	move.l	(sp)+,d0
 ;	move.l	(sp)+,a0
 	rts
@@ -49528,7 +49529,7 @@ PlaySound2:	;	temp stub
 ChangeTempo:	;	stub, no longer needed
 ;	move.l	a0,-(sp)
 ;	move.l	d0,-(sp)
-;	bsr.w	_gemssettempo
+;	bsr.w	gemssettempo
 ;	move.l	(sp)+,d0
 ;	move.l	(sp)+,a0
 	rts
@@ -49537,7 +49538,9 @@ ChangeTempo:	;	stub, no longer needed
 ;	include "GEMS/gems.s"
 	
 	include "_new/SOUNDTST.ASM"
+	include "_new/ERROR.ASM"
+	
+;	align $1000
+;	include	"sound/sound.s"
 
 EndOfROM:
-	END
-	END

@@ -872,7 +872,7 @@ sub_3F366:
 	add.w	d5,a4
 
 loc_3F386:
-	addi.w	#$10,d6
+	add.l	#8,d6
 	move.w	(a4)+,d5
 	andi.w	#$7000,d5
 	cmpi.w	#$4000,d5
@@ -900,7 +900,7 @@ sub_3F3A6:
 	asr.w	#4,d5
 	add.w	d5,d5
 	add.w	d5,a4
-	addi.w	#2,a4
+	add.w	#2,a4
 	addi.w	#$20,d6
 
 loc_3F3CE:

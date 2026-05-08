@@ -113,7 +113,7 @@ loc_3A4D6:
 	beq.s	loc_3A53E
 	move.l	a3,a1
 	move.l	a2,a0
-	addi.l	#$E,a0
+	add.l	#$E,a0
 	moveq	#6,d0
 
 loc_3A4F6:
@@ -125,7 +125,7 @@ loc_3A4F6:
 	beq.s	loc_3A53E
 	move.l	a3,a1
 	move.l	a2,a0
-	addi.l	#$1C,a0
+	add.l	#$1C,a0
 	moveq	#6,d0
 
 loc_3A516:
@@ -137,7 +137,7 @@ loc_3A516:
 	beq.s	loc_3A53E
 	move.l	a3,a1
 	move.l	a2,a0
-	addi.l	#$E,a0
+	add.l	#$E,a0
 	moveq	#6,d0
 
 loc_3A536:

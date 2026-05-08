@@ -1,206 +1,206 @@
-BlockLayout_5C.bin:	binclude "level/block/5C.bin"
+BlockLayout_5C.bin:	incbin "level/block/5C.bin"
 	align 2
-BlockLayout_59.bin:	binclude "level/block/59.bin"
+BlockLayout_59.bin:	incbin "level/block/59.bin"
 	align 2
-BlockLayout_22.bin:	binclude "level/block/22.bin"
+BlockLayout_22.bin:	incbin "level/block/22.bin"
 	align 2
-BlockLayout_09.bin:	binclude "level/block/09.bin"
+BlockLayout_09.bin:	incbin "level/block/09.bin"
 	align 2
-BlockLayout_7A.bin:	binclude "level/block/7A.bin"
+BlockLayout_7A.bin:	incbin "level/block/7A.bin"
 	align 2
-BlockLayout_7B.bin:	binclude "level/block/7B.bin"
+BlockLayout_7B.bin:	incbin "level/block/7B.bin"
 	align 2
-BlockLayout_7C.bin:	binclude "level/block/7C.bin"
+BlockLayout_7C.bin:	incbin "level/block/7C.bin"
 	align 2
-BlockLayout_7D.bin:	binclude "level/block/7D.bin"
+BlockLayout_7D.bin:	incbin "level/block/7D.bin"
 	align 2
-BlockLayout_12.bin:	binclude "level/block/12.bin"
+BlockLayout_12.bin:	incbin "level/block/12.bin"
 	align 2
-BlockLayout_47.bin:	binclude "level/block/47.bin"
+BlockLayout_47.bin:	incbin "level/block/47.bin"
 	align 2
-BlockLayout_26.bin:	binclude "level/block/26.bin"
+BlockLayout_26.bin:	incbin "level/block/26.bin"
 	align 2
-BlockLayout_58.bin:	binclude "level/block/58.bin"
+BlockLayout_58.bin:	incbin "level/block/58.bin"
 	align 2
-BlockLayout_5A.bin:	binclude "level/block/5A.bin"
+BlockLayout_5A.bin:	incbin "level/block/5A.bin"
 	align 2
-BlockLayout_11.bin:	binclude "level/block/11.bin"
+BlockLayout_11.bin:	incbin "level/block/11.bin"
 	align 2
-BlockLayout_27.bin:	binclude "level/block/27.bin"
+BlockLayout_27.bin:	incbin "level/block/27.bin"
 	align 2
-BlockLayout_10.bin:	binclude "level/block/10.bin"
+BlockLayout_10.bin:	incbin "level/block/10.bin"
 	align 2
-BlockLayout_3E.bin:	binclude "level/block/3E.bin"
+BlockLayout_3E.bin:	incbin "level/block/3E.bin"
 	align 2
-BlockLayout_3D.bin:	binclude "level/block/3D.bin"
+BlockLayout_3D.bin:	incbin "level/block/3D.bin"
 	align 2
-BlockLayout_3C.bin:	binclude "level/block/3C.bin"
+BlockLayout_3C.bin:	incbin "level/block/3C.bin"
 	align 2
-BlockLayout_00.bin:	binclude "level/block/00.bin"
+BlockLayout_00.bin:	incbin "level/block/00.bin"
 	align 2
-BlockLayout_01.bin:	binclude "level/block/01.bin"
+BlockLayout_01.bin:	incbin "level/block/01.bin"
 	align 2
-BlockLayout_04.bin:	binclude "level/block/04.bin"
+BlockLayout_04.bin:	incbin "level/block/04.bin"
 	align 2
-BlockLayout_05.bin:	binclude "level/block/05.bin"
+BlockLayout_05.bin:	incbin "level/block/05.bin"
 	align 2
-BlockLayout_08.bin:	binclude "level/block/08.bin"
+BlockLayout_08.bin:	incbin "level/block/08.bin"
 	align 2
-BlockLayout_49.bin:	binclude "level/block/49.bin"
+BlockLayout_49.bin:	incbin "level/block/49.bin"
 	align 2
-BlockLayout_56.bin:	binclude "level/block/56.bin"
+BlockLayout_56.bin:	incbin "level/block/56.bin"
 	align 2
-BlockLayout_2B.bin:	binclude "level/block/2B.bin"
+BlockLayout_2B.bin:	incbin "level/block/2B.bin"
 	align 2
-BlockLayout_0B.bin:	binclude "level/block/0B.bin"
+BlockLayout_0B.bin:	incbin "level/block/0B.bin"
 	align 2
-BlockLayout_13.bin:	binclude "level/block/13.bin"
+BlockLayout_13.bin:	incbin "level/block/13.bin"
 	align 2
-BlockLayout_37.bin:	binclude "level/block/37.bin"
+BlockLayout_37.bin:	incbin "level/block/37.bin"
 	align 2
-BlockLayout_02.bin:	binclude "level/block/02.bin"
+BlockLayout_02.bin:	incbin "level/block/02.bin"
 	align 2
-BlockLayout_2C.bin:	binclude "level/block/2C.bin"
+BlockLayout_2C.bin:	incbin "level/block/2C.bin"
 	align 2
-BlockLayout_30.bin:	binclude "level/block/30.bin"
+BlockLayout_30.bin:	incbin "level/block/30.bin"
 	align 2
-BlockLayout_57.bin:	binclude "level/block/57.bin"
+BlockLayout_57.bin:	incbin "level/block/57.bin"
 	align 2
-BlockLayout_25.bin:	binclude "level/block/25.bin"
+BlockLayout_25.bin:	incbin "level/block/25.bin"
 	align 2
-BlockLayout_21.bin:	binclude "level/block/21.bin"
+BlockLayout_21.bin:	incbin "level/block/21.bin"
 	align 2
-BlockLayout_17.bin:	binclude "level/block/17.bin"
+BlockLayout_17.bin:	incbin "level/block/17.bin"
 	align 2
-BlockLayout_15.bin:	binclude "level/block/15.bin"
+BlockLayout_15.bin:	incbin "level/block/15.bin"
 	align 2
-BlockLayout_18.bin:	binclude "level/block/18.bin"
+BlockLayout_18.bin:	incbin "level/block/18.bin"
 	align 2
-BlockLayout_19.bin:	binclude "level/block/19.bin"
+BlockLayout_19.bin:	incbin "level/block/19.bin"
 	align 2
-BlockLayout_1C.bin:	binclude "level/block/1C.bin"
+BlockLayout_1C.bin:	incbin "level/block/1C.bin"
 	align 2
-BlockLayout_1D.bin:	binclude "level/block/1D.bin"
+BlockLayout_1D.bin:	incbin "level/block/1D.bin"
 	align 2
-BlockLayout_4E.bin:	binclude "level/block/4E.bin"
+BlockLayout_4E.bin:	incbin "level/block/4E.bin"
 	align 2
-BlockLayout_4A.bin:	binclude "level/block/4A.bin"
+BlockLayout_4A.bin:	incbin "level/block/4A.bin"
 	align 2
-BlockLayout_4F.bin:	binclude "level/block/4F.bin"
+BlockLayout_4F.bin:	incbin "level/block/4F.bin"
 	align 2
-BlockLayout_03.bin:	binclude "level/block/03.bin"
+BlockLayout_03.bin:	incbin "level/block/03.bin"
 	align 2
-BlockLayout_2D.bin:	binclude "level/block/2D.bin"
+BlockLayout_2D.bin:	incbin "level/block/2D.bin"
 	align 2
-BlockLayout_31.bin:	binclude "level/block/31.bin"
+BlockLayout_31.bin:	incbin "level/block/31.bin"
 	align 2
-BlockLayout_40.bin:	binclude "level/block/40.bin"
+BlockLayout_40.bin:	incbin "level/block/40.bin"
 	align 2
-BlockLayout_14.bin:	binclude "level/block/14.bin"
+BlockLayout_14.bin:	incbin "level/block/14.bin"
 	align 2
-BlockLayout_38.bin:	binclude "level/block/38.bin"
+BlockLayout_38.bin:	incbin "level/block/38.bin"
 	align 2
-BlockLayout_35.bin:	binclude "level/block/35.bin"
+BlockLayout_35.bin:	incbin "level/block/35.bin"
 	align 2
-BlockLayout_4B.bin:	binclude "level/block/4B.bin"
+BlockLayout_4B.bin:	incbin "level/block/4B.bin"
 	align 2
-BlockLayout_0C.bin:	binclude "level/block/0C.bin"
+BlockLayout_0C.bin:	incbin "level/block/0C.bin"
 	align 2
-BlockLayout_2E.bin:	binclude "level/block/2E.bin"
+BlockLayout_2E.bin:	incbin "level/block/2E.bin"
 	align 2
-BlockLayout_34.bin:	binclude "level/block/34.bin"
+BlockLayout_34.bin:	incbin "level/block/34.bin"
 	align 2
-BlockLayout_0A.bin:	binclude "level/block/0A.bin"
+BlockLayout_0A.bin:	incbin "level/block/0A.bin"
 	align 2
-BlockLayout_4C.bin:	binclude "level/block/4C.bin"
+BlockLayout_4C.bin:	incbin "level/block/4C.bin"
 	align 2
-BlockLayout_4D.bin:	binclude "level/block/4D.bin"
+BlockLayout_4D.bin:	incbin "level/block/4D.bin"
 	align 2
-BlockLayout_2F.bin:	binclude "level/block/2F.bin"
+BlockLayout_2F.bin:	incbin "level/block/2F.bin"
 	align 2
-BlockLayout_16.bin:	binclude "level/block/16.bin"
+BlockLayout_16.bin:	incbin "level/block/16.bin"
 	align 2
-BlockLayout_39.bin:	binclude "level/block/39.bin"
+BlockLayout_39.bin:	incbin "level/block/39.bin"
 	align 2
-BlockLayout_0F.bin:	binclude "level/block/0F.bin"
+BlockLayout_0F.bin:	incbin "level/block/0F.bin"
 	align 2
-BlockLayout_3F.bin:	binclude "level/block/3F.bin"
+BlockLayout_3F.bin:	incbin "level/block/3F.bin"
 	align 2
-BlockLayout_3A.bin:	binclude "level/block/3A.bin"
+BlockLayout_3A.bin:	incbin "level/block/3A.bin"
 	align 2
-BlockLayout_3B.bin:	binclude "level/block/3B.bin"
+BlockLayout_3B.bin:	incbin "level/block/3B.bin"
 	align 2
-BlockLayout_55.bin:	binclude "level/block/55.bin"
+BlockLayout_55.bin:	incbin "level/block/55.bin"
 	align 2
-BlockLayout_36.bin:	binclude "level/block/36.bin"
+BlockLayout_36.bin:	incbin "level/block/36.bin"
 	align 2
-BlockLayout_32.bin:	binclude "level/block/32.bin"
+BlockLayout_32.bin:	incbin "level/block/32.bin"
 	align 2
-BlockLayout_53.bin:	binclude "level/block/53.bin"
+BlockLayout_53.bin:	incbin "level/block/53.bin"
 	align 2
-BlockLayout_54.bin:	binclude "level/block/54.bin"
+BlockLayout_54.bin:	incbin "level/block/54.bin"
 	align 2
-BlockLayout_0E.bin:	binclude "level/block/0E.bin"
+BlockLayout_0E.bin:	incbin "level/block/0E.bin"
 	align 2
-BlockLayout_0D.bin:	binclude "level/block/0D.bin"
+BlockLayout_0D.bin:	incbin "level/block/0D.bin"
 	align 2
-BlockLayout_33.bin:	binclude "level/block/33.bin"
+BlockLayout_33.bin:	incbin "level/block/33.bin"
 	align 2
-BlockLayout_5D.bin:	binclude "level/block/5D.bin"
+BlockLayout_5D.bin:	incbin "level/block/5D.bin"
 	align 2
-BlockLayout_5E.bin:	binclude "level/block/5E.bin"
+BlockLayout_5E.bin:	incbin "level/block/5E.bin"
 	align 2
-BlockLayout_5F.bin:	binclude "level/block/5F.bin"
+BlockLayout_5F.bin:	incbin "level/block/5F.bin"
 	align 2
-BlockLayout_60.bin:	binclude "level/block/60.bin"
+BlockLayout_60.bin:	incbin "level/block/60.bin"
 	align 2
-BlockLayout_61.bin:	binclude "level/block/61.bin"
+BlockLayout_61.bin:	incbin "level/block/61.bin"
 	align 2
-BlockLayout_62.bin:	binclude "level/block/62.bin"
+BlockLayout_62.bin:	incbin "level/block/62.bin"
 	align 2
-BlockLayout_63.bin:	binclude "level/block/63.bin"
+BlockLayout_63.bin:	incbin "level/block/63.bin"
 	align 2
-BlockLayout_64.bin:	binclude "level/block/64.bin"
+BlockLayout_64.bin:	incbin "level/block/64.bin"
 	align 2
-BlockLayout_65.bin:	binclude "level/block/65.bin"
+BlockLayout_65.bin:	incbin "level/block/65.bin"
 	align 2
-BlockLayout_66.bin:	binclude "level/block/66.bin"
+BlockLayout_66.bin:	incbin "level/block/66.bin"
 	align 2
-BlockLayout_67.bin:	binclude "level/block/67.bin"
+BlockLayout_67.bin:	incbin "level/block/67.bin"
 	align 2
-BlockLayout_68.bin:	binclude "level/block/68.bin"
+BlockLayout_68.bin:	incbin "level/block/68.bin"
 	align 2
-BlockLayout_69.bin:	binclude "level/block/69.bin"
+BlockLayout_69.bin:	incbin "level/block/69.bin"
 	align 2
-BlockLayout_6A.bin:	binclude "level/block/6A.bin"
+BlockLayout_6A.bin:	incbin "level/block/6A.bin"
 	align 2
-BlockLayout_6B.bin:	binclude "level/block/6B.bin"
+BlockLayout_6B.bin:	incbin "level/block/6B.bin"
 	align 2
-BlockLayout_6C.bin:	binclude "level/block/6C.bin"
+BlockLayout_6C.bin:	incbin "level/block/6C.bin"
 	align 2
-BlockLayout_6D.bin:	binclude "level/block/6D.bin"
+BlockLayout_6D.bin:	incbin "level/block/6D.bin"
 	align 2
-BlockLayout_6E.bin:	binclude "level/block/6E.bin"
+BlockLayout_6E.bin:	incbin "level/block/6E.bin"
 	align 2
-BlockLayout_6F.bin:	binclude "level/block/6F.bin"
+BlockLayout_6F.bin:	incbin "level/block/6F.bin"
 	align 2
-BlockLayout_70.bin:	binclude "level/block/70.bin"
+BlockLayout_70.bin:	incbin "level/block/70.bin"
 	align 2
-BlockLayout_71.bin:	binclude "level/block/71.bin"
+BlockLayout_71.bin:	incbin "level/block/71.bin"
 	align 2
-BlockLayout_72.bin:	binclude "level/block/72.bin"
+BlockLayout_72.bin:	incbin "level/block/72.bin"
 	align 2
-BlockLayout_73.bin:	binclude "level/block/73.bin"
+BlockLayout_73.bin:	incbin "level/block/73.bin"
 	align 2
-BlockLayout_74.bin:	binclude "level/block/74.bin"
+BlockLayout_74.bin:	incbin "level/block/74.bin"
 	align 2
-BlockLayout_75.bin:	binclude "level/block/75.bin"
+BlockLayout_75.bin:	incbin "level/block/75.bin"
 	align 2
-BlockLayout_76.bin:	binclude "level/block/76.bin"
+BlockLayout_76.bin:	incbin "level/block/76.bin"
 	align 2
-BlockLayout_77.bin:	binclude "level/block/77.bin"
+BlockLayout_77.bin:	incbin "level/block/77.bin"
 	align 2
-BlockLayout_78.bin:	binclude "level/block/78.bin"
+BlockLayout_78.bin:	incbin "level/block/78.bin"
 	align 2
-BlockLayout_79.bin:	binclude "level/block/79.bin"
+BlockLayout_79.bin:	incbin "level/block/79.bin"
 	align 2

@@ -25,11 +25,11 @@ Enemy06_Sphere_Loop:
 	jsr	(j_Hibernate_Object_1Frame).w
 	bsr.w	Object_CheckInRange
 	subq.w	#1,d1
-	bne.w	+
+	bne.w	.local
 	move.w	#$96,d1
 	clr.l	d0
 
-+
+.local
 	addi.l	#$800,y_vel(a3)	; apply gravity
 	tst.w	collision_type(a3)
 	bne.s	Enemy06_Sphere_ExecCollisionBehavior
