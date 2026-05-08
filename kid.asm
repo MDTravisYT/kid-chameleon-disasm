@@ -23572,7 +23572,7 @@ GameLoadArray:	dc.l Load_SegaScreen
 	dc.l Load_TitleCard
 	dc.l Load_InGame	; also Results screen
 	dc.l Load_DemoPlay
-	dc.l Load_OptionMenu
+	dc.l SoundTest
 	dc.l Load_IntroSequence2
 	dc.l Load_IntroSequence3
 	dc.l Load_IntroSequence4
@@ -49535,6 +49535,8 @@ ChangeTempo:	;	stub, no longer needed
 ; End of function ChangeTempo
 
 ;	include "GEMS/gems.s"
+	
+	include "_new/SOUNDTST.ASM"
 
 EndOfROM:
 	END

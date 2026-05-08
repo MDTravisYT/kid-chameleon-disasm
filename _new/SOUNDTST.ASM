@@ -17,7 +17,7 @@ btnS	=	7		;	Start
 SndTstID = $FF0000
 
 SoundTest:
-	jsr 	_gemsstopall
+;	jsr 	_gemsstopall
 	move.l	#CRAMWRITE+((6*2)<<16),VDPCTRL
 	move.w	#$EEE,VDPDATA
 
@@ -64,7 +64,7 @@ SoundTest:
 	add.w	#1,	SndTstID
 	bra.w	.printID
 .play:
-	jsr 	_gemsstopall
+;	jsr 	_gemsstopall
 	move.b	SndTstID+1,	d0
 	jsr	PlaySound
 	bra.w	.loop
