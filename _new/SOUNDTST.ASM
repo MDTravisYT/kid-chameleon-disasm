@@ -5,9 +5,19 @@ VDPDATA		EQU	$C00000		; VDP data port
 VDPCTRL		EQU	$C00004		; VDP control port
 ASCII_TILEDELTA	= $0660
 
-SndTstID = $FFF808
+btnU	=	0		;	up
+btnD	=	1		;	down
+btnL	=	2		;	left
+btnR	=	3		;	right
+btnB	=	4		;	B
+btnC	=	5		;	C
+btnA	=	6		;	A (isnt it funny how this comes after the rest hmmmmmm)
+btnS	=	7		;	Start
+
+SndTstID = $FF0000
 
 SoundTest:
+	jsr 	_gemsstopall
 	move.l	#CRAMWRITE+((6*2)<<16),VDPCTRL
 	move.w	#$EEE,VDPDATA
 
@@ -31,8 +41,42 @@ SoundTest:
 	bsr.w	PrintWordValue
 .loop
 	jsr	WaitForVint
-	bra.s	.printID
+	jsr	readjoypads_sonic
+	btst	#btnS,Ctrl_1_Pressed.w
+	bne.w	.exit
+	btst	#btnL,Ctrl_1_Pressed.w
+	bne.w	.left
+	btst	#btnR,Ctrl_1_Pressed.w
+	bne.w	.right
+	btst	#btnU,Ctrl_1_Pressed.w
+	bne.w	.up10
+	btst	#btnD,Ctrl_1_Pressed.w
+	bne.w	.dn10
+	btst	#btnC,Ctrl_1_Pressed.w
+	bne.w	.play
+	
+	bra.s	.loop
+	
+.left:
+	sub.w	#1,	SndTstID
+	bra.w	.printID
+.right:
+	add.w	#1,	SndTstID
+	bra.w	.printID
+.play:
+	jsr 	_gemsstopall
+	move.b	SndTstID+1,	d0
+	jsr	PlaySound
+	bra.w	.loop
+.exit:
+	;move.b  #GMNO_SELECT,gamemode.w
 	rts
+.up10:
+	sub.w	#16,	SndTstID
+	bra.w	.printID
+.dn10:
+	add.w	#16,	SndTstID
+	bra.w	.printID
 
 ; ---------------------------------------------------------------------------
 .string:
@@ -138,6 +182,54 @@ PrintWordValue:
 .ConvTbl:
 	dc.b	$10, $11, $12, $13, $14, $15, $16, $17
 	dc.b	$18, $19, $21, $22, $23, $24, $25, $26
+
+; ---------------------------------------------------------------------------
+; This game's joypad code super-sucks. Here's the Sonic version instead.
+; --------------------------------------------------------------------------- 
+; Word
+HVERSION_	EQU	$A10000		; Hardware version
+IODATA1_	EQU	$A10002		; Pad 1 Data
+IODATA2_	EQU	$A10004         ; Pad 2 Data
+IODATA3_	EQU	$A10006         ; EXT Data
+IOCTRL1_	EQU	$A10008         ; Pad 1 Ctrl
+IOCTRL2_	EQU	$A1000A         ; Pad 2 Ctrl
+IOCTRL3_	EQU	$A1000C         ; EXT Ctrl
+; Byte
+HVERSION        EQU     HVERSION_+1
+IODATA1         EQU     IODATA1_+1
+IODATA2         EQU     IODATA2_+1
+IODATA3         EQU     IODATA3_+1
+IOCTRL1         EQU     IOCTRL1_+1
+IOCTRL2         EQU     IOCTRL2_+1
+IOCTRL3         EQU     IOCTRL3_+1  
+readjoypads_sonic:
+	lea	(Ctrl_1_Held).w,	a0
+	lea	(IODATA1).l,	a1
+	bsr.s	.readpad
+	addq.w	#2,	a1
+	bsr.s	.readpad
+	rts
+		
+.readpad:
+	move.b  #0,(a1)
+	nop
+	nop
+	move.b  (a1),d0
+	lsl.b   #2,d0
+	andi.b  #$c0,d0
+	move.b  #$40,(a1) ; '@'
+	nop
+	nop
+	move.b  (a1),d1
+	andi.b  #$3f,d1 ; '?'
+	or.b    d1,d0
+	not.b   d0
+	move.b  (a0),d1
+	eor.b   d0,d1
+	move.b  d0,(a0)+
+	and.b   d0,d1
+	move.b  d1,(a0)+
+	rts
 
 ArtUnc_Text:    binclude  "_new/ASCII.BIN"
 ArtUnc_TextE:
