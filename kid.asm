@@ -8563,7 +8563,7 @@ loc_7E14:
 
 loc_7E26:
 	move.b	(a4,d0.w),d0
-	jsr	(sub_E1330).l
+	jsr	(j_ChangeTempo).l
 	jsr	(sub_E1338).l
 	move.w	(Current_Helmet).w,d7
 	bne.s	loc_7E48
@@ -49478,9 +49478,9 @@ j_PlaySound2:
 
 ; Attributes: thunk
 
-sub_E1330:
-	jmp	sub_E1546(pc)
-; End of function sub_E1330
+j_ChangeTempo:
+	jmp	ChangeTempo(pc)
+; End of function j_ChangeTempo
 
 
 ; =============== S U B	R O U T	I N E =======================================
@@ -49545,14 +49545,14 @@ PlaySound2:	;	Not native to GEMS
 	rts
 ; End of function PlaySound2
 
-sub_E1546:	;	Not native to GEMS
+ChangeTempo:	;	Not native to GEMS
 	move.l	a0,-(sp)
 	move.l	d0,-(sp)
 	bsr.w	_gemssettempo
 	move.l	(sp)+,d0
 	move.l	(sp)+,a0
 	rts
-; End of function sub_E1546
+; End of function ChangeTempo
 
 loc_E13B0:	;	Not native to GEMS
 	move.w	4(a6),d0
