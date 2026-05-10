@@ -2910,10 +2910,10 @@ GfxObjects_Collision_Tiles_RowLoop:
 
 ;loc_17A0
 GfxObjects_Collision_Tiles_Continue:
-	add.l	#8,d2
+	addi.w	#16,d2
 	dbf	d4,GfxObjects_Collision_Tiles_RowLoop
 
-	add.l	#8,d3
+	addi.w	#16,d3
 	add.w	(Level_width_tiles).w,a3
 	subq.w	#2,a3
 	suba.w	d5,a3
@@ -3038,7 +3038,7 @@ GfxObjects_Collision_Solid_MovingRightUp:
 	andi.w	#$7000,d3
 	cmpi.w	#$6000,d3
 	beq.w	loc_1966
-	add.l	#8,d2
+	addi.w	#16,d2
 	sub.w	d1,d4
 	sub.w	d2,d5
 	muls.w	d0,d5
@@ -3063,7 +3063,7 @@ GfxObjects_Collision_Solid_MovingLeft:
 	andi.w	#$7000,d4
 	cmpi.w	#$6000,d4
 	beq.w	loc_19BA
-	add.l	#8,d1
+	addi.w	#16,d1
 	sub.w	d1,d3
 	sub.w	d2,d6
 	muls.w	d0,d6
@@ -3084,8 +3084,8 @@ GfxObjects_Collision_Solid_MovingLeftUp:
 	andi.w	#$7000,d4
 	cmpi.w	#$6000,d4
 	beq.w	loc_19BA
-	add.l	#8,d1
-	add.l	#8,d2
+	addi.w	#16,d1
+	addi.w	#16,d2
 	sub.w	d1,d3
 	sub.w	d2,d5
 	muls.w	d0,d5
@@ -3147,7 +3147,7 @@ loc_19D2:
 	beq.w	loc_1A00
 	add.w	(a1)+,d7
 	add.w	(a1)+,d7
-	add.l	#8,d7
+	addi.w	#16,d7
 	move.w	d7,$1A(a2)
 	clr.w	$1C(a2)
 	bra.w	GfxObjects_Collision_Loop
@@ -3155,7 +3155,7 @@ loc_19D2:
 
 loc_1A00:
 	sub.w	(a1)+,d7
-	add.l	#8,d7
+	addi.w	#16,d7
 	move.w	d7,$1A(a2)
 	clr.w	$1C(a2)
 	bra.w	GfxObjects_Collision_Loop
@@ -3203,7 +3203,7 @@ loc_1A6C:
 	move.w	2(sp),d7
 	addq.w	#4,a1
 	sub.w	(a1)+,d7
-	add.l	#8,d7
+	addi.w	#16,d7
 	move.w	d7,$1E(a2)
 	clr.w	$20(a2)
 	bra.w	GfxObjects_Collision_Loop
@@ -3867,7 +3867,7 @@ loc_2056:
 
 loc_2074:
 	add.w	d3,a1
-	add.l	#8,d2
+	addi.w	#16,d2
 	move.w	(a1),d0
 	bsr.w	j_Palette_to_VRAM0
 	beq.s	loc_2074
@@ -4382,9 +4382,9 @@ loc_24D4:
 
 loc_24D8:
 	bsr.w	loc_2548
-	add.l	#8,d4
+	addi.w	#16,d4
 	dbf	d3,loc_24D8
-	add.l	#8,d6
+	addi.w	#16,d6
 	dbf	d1,loc_24D4
 	bra.w	loc_244C
 ; ---------------------------------------------------------------------------
@@ -4393,7 +4393,7 @@ loc_24F0:
 	move.w	d7,d4
 	bsr.w	loc_2548
 	addq.w	#4,a4
-	add.l	#8,d4
+	addi.w	#16,d4
 	subq.w	#1,d0
 	beq.w	loc_2512
 	move.w	d0,d1
@@ -4401,7 +4401,7 @@ loc_24F0:
 
 loc_2506:
 	bsr.w	loc_2548
-	add.l	#8,d4
+	addi.w	#16,d4
 	dbf	d1,loc_2506
 
 loc_2512:
@@ -4414,7 +4414,7 @@ loc_251C:
 	move.w	d7,d4
 	bsr.w	loc_2548
 	addq.w	#4,a4
-	add.l	#8,d6
+	addi.w	#16,d6
 	subq.w	#1,d1
 	beq.w	loc_253E
 	move.w	d1,d0
@@ -4422,7 +4422,7 @@ loc_251C:
 
 loc_2532:
 	bsr.w	loc_2548
-	add.l	#8,d6
+	addi.w	#16,d6
 	dbf	d0,loc_2532
 
 loc_253E:
@@ -4722,7 +4722,7 @@ loc_2762:
 	asl.w	#4,d6
 	subq.w	#1,d6
 	andi.w	#$F0,d7
-	add.l	#8,d7
+	addi.w	#16,d7
 	subq.w	#1,d7
 	move.w	d7,x_pos(a3)	; x size in pixels
 	move.w	d6,$1C(a3)	; y size in pixels
@@ -7538,7 +7538,7 @@ loc_73F4:
 
 loc_7402:
 	jsr	(j_Hibernate_Object_1Frame).w
-	add.l	#8,($FFFFF876).w
+	addi.w	#16,($FFFFF876).w
 	cmpi.w	#$100,($FFFFF876).w
 	bgt.s	loc_7420
 
@@ -7687,7 +7687,7 @@ loc_757E:
 	beq.w	loc_75C0
 	cmpi.w	#5,d5
 	beq.w	loc_75C0
-	add.l	#8,d6
+	addi.w	#16,d6
 
 loc_75C0:
 	bsr.w	sub_7B30
@@ -8119,7 +8119,7 @@ loc_7A60:
 	move.w	x_pos(a3),d7
 	sub.w	d4,d7
 	andi.w	#$FFF0,d7
-	add.l	#8,d7
+	addi.w	#16,d7
 	add.w	d4,d7
 	move.w	d7,x_pos(a3)
 	add.w	d4,d7
@@ -8189,7 +8189,7 @@ loc_7AD6:
 	beq.w	loc_7B0A
 	cmpi.w	#5,d5
 	beq.w	loc_7B0A
-	add.l	#8,d6
+	addi.w	#16,d6
 
 loc_7B0A:
 	bsr.w	sub_7B30
@@ -8270,7 +8270,7 @@ loc_7B9E:
 
 loc_7BA4:
 	andi.w	#$FFF0,d4
-	add.l	#8,d4
+	addi.w	#16,d4
 	add.w	(sp),d4
 	move.w	d4,x_pos(a3)
 	add.w	(sp),d4
@@ -8927,7 +8927,7 @@ loc_818A:
 	moveq	#-$11,d7
 	bsr.w	sub_B43A
 	beq.w	loc_819A
-	add.l	#8,y_pos(a3)
+	addi.w	#16,y_pos(a3)
 
 loc_819A:
 	sf	(Cyclone_flying).w
@@ -9700,7 +9700,7 @@ loc_8890:
 	bne.w	loc_88E6
 	move.w	x_pos(a3),d7
 	andi.w	#$FFF0,d7
-	add.l	#8,d7
+	addi.w	#16,d7
 	move.w	d7,x_pos(a3)
 
 loc_88B6:
@@ -9780,7 +9780,7 @@ loc_8958:
 	move.w	y_pos(a3),d7
 	clr.w	$20(a3)
 	andi.w	#$FFF0,d7
-	add.l	#8,d7
+	addi.w	#16,d7
 	move.w	d7,y_pos(a3)
 
 loc_897C:
@@ -10835,7 +10835,7 @@ loc_93D4:
 	bne.w	loc_9402
 	move.w	x_pos(a3),d7
 	andi.w	#$FFF0,d7
-	add.l	#8,d7
+	addi.w	#16,d7
 	add.w	y_pos(a3),d7
 	move.w	d7,($FFFFFA24).w
 	sf	($FFFFFA26).w
@@ -11365,7 +11365,7 @@ sub_9832:
 	move.w	y_pos(a3),d2
 	subi.w	#$1F,d2
 	move.w	d2,d3
-	add.l	#8,d3
+	addi.w	#16,d3
 	movem.l	a2-a3,-(sp)
 	lea	($FFFFF86A).w,a2
 
@@ -12271,7 +12271,7 @@ loc_9FBC:
 	andi.w	#$FFF0,d0
 	tst.w	x_vel(a3)
 	bmi.s	loc_9FCE
-	add.l	#8,d0
+	addi.w	#16,d0
 
 loc_9FCE:
 	subq.w	#1,d0
@@ -12363,7 +12363,7 @@ loc_A0B4:
 	andi.w	#$FFF0,d0
 	tst.w	x_vel(a3)
 	bpl.s	loc_A0C6
-	add.l	#8,d0
+	addi.w	#16,d0
 
 loc_A0C6:
 	subq.w	#1,d0
@@ -13440,7 +13440,7 @@ loc_ABD4:
 
 loc_ABF0:
 	add.w	(Level_width_tiles).w,a4
-	add.l	#8,d6
+	addi.w	#16,d6
 	move.w	(a4),d7
 	andi.w	#$7000,d7
 	cmpi.w	#$6000,d7
@@ -14220,7 +14220,7 @@ loc_B350:
 	beq.w	loc_B3A8
 	moveq	#0,d7
 	move.b	(Red_Stealth_sword_swing).w,d7
-	add.l	#8,d7
+	addi.w	#16,d7
 	cmpi.w	#$7F,d7
 	ble.w	loc_B380
 	move.w	#$7F,d7
@@ -15399,7 +15399,7 @@ loc_BE08:
 
 loc_BE0C:
 	addq.w	#1,d4
-	add.l	#8,d2
+	addi.w	#16,d2
 	subq.w	#2,d1
 	subq.w	#2,d0
 	bge.s	loc_BE20
@@ -18022,7 +18022,7 @@ loc_E4C4:
 	bge.w	loc_E650
 	move.w	d7,d5
 	lsl.w	#3,d5
-	add.l	#8,d5
+	addi.w	#16,d5
 	move.w	d0,a1
 	tst.b	($FFFFFABE).w
 	bne.s	loc_E50A
@@ -18349,7 +18349,7 @@ loc_E692:
 	lsr.w	#1,d3
 	addq.w	#2,d3
 	move.w	d1,(a2)+
-	add.l	#8,d1
+	addi.w	#16,d1
 	move.b	#$D,(a2)+
 	addq.b	#1,d2
 	move.b	d2,(a2)+
@@ -18492,7 +18492,7 @@ loc_E7E0:
 	move.w	d0,d6
 	tst.b	($FFFFFABE).w
 	bne.s	loc_E7F4
-	add.l	#8,d6
+	addi.w	#16,d6
 	moveq	#0,d4
 	bra.s	loc_E7FE
 ; ---------------------------------------------------------------------------
@@ -18585,7 +18585,7 @@ loc_E8A6:
 	tst.b	($FFFFFABE).w
 	bne.s	loc_E8CA
 	add.w	d3,d6
-	add.l	#8,d6
+	addi.w	#16,d6
 	add.w	d3,d0
 	subi.w	#$10,d0
 	cmpi.w	#$1C0,d0
@@ -20761,7 +20761,7 @@ loc_FA2E:
 	move.w	d7,(a2)+
 	move.w	d3,(a2)+
 	move.w	d0,(a2)+
-	add.l	#8,d0
+	addi.w	#16,d0
 	dbf	d2,loc_FA2E
 
 loc_FA40:
@@ -20816,7 +20816,7 @@ loc_FAA6:
 	move.w	d7,(a2)+
 	move.w	d3,(a2)+
 	move.w	d0,(a2)+
-	add.l	#8,d1
+	addi.w	#16,d1
 	dbf	d2,loc_FAA6
 	lea	$10(a0),a0
 	dbf	d6,loc_F76C
@@ -23334,7 +23334,7 @@ loc_113F4:
 	addq.w	#1,d2
 	add.w	(Level_width_tiles).w,a1
 	bsr.w	EraseBlockFromLevelLayout
-	add.l	#8,y_pos(a3)
+	addi.w	#16,y_pos(a3)
 	move.w	#$F,d0
 
 loc_1141E:
@@ -26011,7 +26011,7 @@ loc_135D2:
 	sub.w	a5,d7
 	bcc.s	loc_13602
 	move.w	d7,d6
-	add.l	#8,d6
+	addi.w	#16,d6
 	neg.w	d7
 	lsl.w	d7,d1
 	move.b	(a0),d5
@@ -27964,7 +27964,7 @@ loc_148E6:
 	move.l	d7,a2
 	move.l	a2,a1
 	moveq	#0,d5
-	add.l	#8,d1
+	addi.w	#16,d1
 
 loc_148F8:
 	move.w	(Camera_Y_pos).w,d7
@@ -27978,7 +27978,7 @@ loc_148F8:
 	move.l	a1,a2
 
 loc_14914:
-	add.l	#8,d1
+	addi.w	#16,d1
 	addq.w	#1,d5
 	cmp.w	d3,d5
 	ble.s	loc_148F8
@@ -28119,7 +28119,7 @@ sub_14A58:
 	cmp.w	d7,d5
 	bgt.s	loc_14AAA
 	move.w	$54(a5),d7
-	add.l	#8,d7
+	addi.w	#16,d7
 	move.w	(Kid_hitbox_bottom).w,d5
 	cmp.w	d7,d5
 	blt.s	loc_14AAA
@@ -28792,7 +28792,7 @@ loc_1AB6A:
 	beq.s	loc_1ABD6
 	cmpi.b	#$22,d1
 	beq.s	loc_1ABDC
-	add.l	#8,d2
+	addi.w	#16,d2
 	bra.s	loc_1AB6A
 ; ---------------------------------------------------------------------------
 
@@ -28825,7 +28825,7 @@ loc_1ABE2:
 
 loc_1ABEA:
 	addq.w	#1,a2
-	add.l	#8,d2
+	addi.w	#16,d2
 	bra.w	loc_1AB6A
 ; ---------------------------------------------------------------------------
 
@@ -28992,7 +28992,7 @@ loc_1AD56:
 	move.b	#$7B,$44(a0)
 	move.w	d1,$46(a0)
 	move.w	d2,$48(a0)
-	add.l	#8,d1
+	addi.w	#16,d1
 	dbf	d3,loc_1AD56
 	jmp	(j_Delete_CurrentObject).w
 ; ---------------------------------------------------------------------------
@@ -31088,7 +31088,7 @@ loc_1C210:
 loc_1C21E:
 	jsr	(j_Hibernate_Object_1Frame).w
 	bsr.w	sub_1C246
-	add.l	#8,($FFFFF876).w
+	addi.w	#16,($FFFFF876).w
 	cmpi.w	#$100,($FFFFF876).w
 	bgt.s	loc_1C240
 
@@ -34443,7 +34443,7 @@ BackgroundScroll_ApplyDesertHeatRipple:
 	sub.w	d6,d0
 	bpl.s	loc_306C2
 	move.w	d0,d2
-	add.l	#8,d0
+	addi.w	#16,d0
 	ble.s	return_30702
 	neg.w	d2
 	move.w	d0,d1
