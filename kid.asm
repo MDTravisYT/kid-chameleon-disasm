@@ -49510,7 +49510,8 @@ j_ChangeTempo:
 
 ; Attributes: thunk
 
-j__gemspauseall:	;	temp stub
+j__gemspauseall:
+	move.b	#1, sound_ram+pause_flg
 	rts
 ;	jmp	gemspauseall(pc)
 ; End of function j__gemspauseall
@@ -49520,7 +49521,8 @@ j__gemspauseall:	;	temp stub
 
 ; Attributes: thunk
 
-j__gemsresumeall:	;	temp stub
+j__gemsresumeall:
+	move.b	#$80, sound_ram+pause_flg
 	rts
 ;	jmp	gemsresumeall(pc)
 ; End of function j__gemsresumeall
@@ -49532,7 +49534,9 @@ sub_E133C:	;	not needed
 
 ; Attributes: thunk
 
-PlaySound:	;	temp stub
+PlaySound:
+	move.b	d0,sound_ram+buf1
+
 ;	move.l	a0,-(sp)
 ;	move.l	d0,-(sp)
 ;	bsr.w	gemsstartsong
@@ -49544,7 +49548,9 @@ PlaySound:	;	temp stub
 ; only difference to PlaySound is that we move $12 instead of $10 to d0
 ; before calling stdcmdwrite
 ;sub_E1532
-PlaySound2:	;	temp stub
+PlaySound2:
+	move.b	d0,sound_ram+buf2
+
 ;	move.l	a0,-(sp)
 ;	move.l	d0,-(sp)
 ;	bsr.w	gemsstopsong
