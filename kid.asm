@@ -61,6 +61,10 @@ Default_Options = $00000000
 ; ===========================================================================
 	include "constants.asm"
 	include "macros.asm"
+	
+	include "sound/src/tb.lib"
+	include "sound/src/eq.lib"
+	include "sound/src/mcr.lib"
 ; ===========================================================================
 StartOfROM:
 Vectors:
@@ -49542,7 +49546,7 @@ ChangeTempo:	;	stub, no longer needed
 	include "_new/SOUNDTST.ASM"
 	include "_new/ERROR.ASM"
 	
-;	align $1000
-;	include	"sound/sound.s"
+	align $1000
+	include	"sound/sound.s"
 
 EndOfROM:
