@@ -28,3 +28,4 @@ planeed_prj/*.exe
 /chameleon.lst
 /diff.txt
 /SOUND/PCM/OUT
+/SOUND/PCM/_errors.log

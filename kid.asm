@@ -540,8 +540,11 @@ Vector64:
 	bra.w	returnFromException
 ; ---------------------------------------------------------------------------
 V_Int:
+	movem.l d0-a6,-(sp)
 	addq.l	#1,(V_Int_counter).w
 	st	(V_Int_Done).w
+	jsr	sound
+	movem.l (sp)+,d0-a6
 	rte
 ; ---------------------------------------------------------------------------
 H_Int:
@@ -747,6 +750,24 @@ loc_5E6:
 	move.w	d1,4(a6)
 	addi.w	#$100,d1
 	dbf	d0,loc_5E6
+	
+;	init sound
+	z80reset_off
+	z80bus_on
+	z80reset_on
+	lea		pcm_top,a0
+	lea		Z80RAM,	a1
+	move.w	#(pcm_end-pcm_top)-1,	d0
+.loadSound
+	move.b	(a0)+,	(a1)+
+	dbf		d0,		.loadSound
+	z80reset_off
+	move.w	#$20,	d0
+.stall
+	dbf		d0,		.stall
+	z80reset_on
+	z80bus_off
+	
 	move.l	(Options_Suboption_2PController).w,d7
 	lea	(Sprite_Table).l,a0
 
