@@ -23619,9 +23619,9 @@ Load_InGame:
 	jsr	(j_sub_44B0).w
 	jsr	(j_Init_Timer_and_Bonus_Flags).w
 	jsr	(j__gemsinit).l
-;	move.l	#$F,-(sp)
-;	jsr	(sub_E133C).l
-;	move.l	(sp)+,d0
+	move.l	#$F,-(sp)
+	jsr	(sub_E133C).l
+	move.l	(sp)+,d0
 	move.w	(Current_LevelID).w,d0
 	move.l	(LnkTo_MapOrder_Index).l,a0
 	move.b	(a0,d0.w),d0
@@ -28733,7 +28733,7 @@ Pal_19C48:
 	incbin	"scenes/palette/Title_card_letters.bin"
 ArtComp_19C68_TtlCardLetters:
 	incbin	"scenes/artcomp/Title_card_letters.bin"
-	align	2
+	even
 ; 1A45C
 ;AddrTbl_LevelNames is defined in here at 1A842:
 	include	"level/levelnames.asm"
@@ -49500,6 +49500,8 @@ j__gemsresumeall:	;	temp stub
 ;	jmp	gemsresumeall(pc)
 ; End of function j__gemsresumeall
 
+sub_E133C:	;	not needed
+	rts
 
 ; =============== S U B	R O U T	I N E =======================================
 
