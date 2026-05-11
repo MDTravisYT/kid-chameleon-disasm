@@ -36,6 +36,9 @@ errLine1111:
 errTrapV:
 	InitTXT	ASCIITXT10,2,2
 	bra.w	Err_cont
+MegaPCMErr:	;	MegaPCM error
+	InitTXT	ASCIITXT11,2,2
+	bra.w	Err_cont
 trap:
 	InitTXT	ASCIITXT10,2,2
 Err_cont:
@@ -64,3 +67,4 @@ ASCIITXT7:	dc.b	'TRACE',0
 ASCIITXT8:	dc.b	'LINE 1010',0
 ASCIITXT9:	dc.b	'LINE 1111',0
 ASCIITXT10:	dc.b	'TRAP!',0
+ASCIITXT11:	dc.b	'MEGAPCM SAMPLE ERROR',0

@@ -100,7 +100,7 @@ Vectors:
 	dc.l IRQLevel5        ; IRQ level 5
 	dc.l V_Int          ; IRQ level 6 (vertical retrace interrupt)
 	dc.l EntryPoint		; IRQ level 7 (32)
-	dc.l Trap00Exception        ; TRAP #00 exception
+	dc.l MegaPCMErr       	    ; TRAP #00 exception (MegaPCM Error)
 	dc.l Trap01Exception        ; TRAP #01 exception
 	dc.l Trap02Exception        ; TRAP #02 exception
 	dc.l Trap03Exception        ; TRAP #03 exception (36)
@@ -752,21 +752,13 @@ loc_5E6:
 	dbf	d0,loc_5E6
 	
 ;	init sound
-	z80reset_off
-	z80bus_on
-	z80reset_on
-	lea		pcm_top,a0
-	lea		Z80RAM,	a1
-	move.w	#(pcm_end-pcm_top)-1,	d0
-.loadSound
-	move.b	(a0)+,	(a1)+
-	dbf		d0,		.loadSound
-	z80reset_off
-	move.w	#$20,	d0
-.stall
-	dbf		d0,		.stall
-	z80reset_on
-	z80bus_off
+	jsr     MegaPCM_LoadDriver
+	lea     SampleTable, a0
+	jsr     MegaPCM_LoadSampleTable
+	tst.w   d0                      ; was sample table loaded successfully?
+	beq.s   .SampleTableOk          ; if yes, branch
+	trap #0
+.SampleTableOk:
 	
 	move.l	(Options_Suboption_2PController).w,d7
 	lea	(Sprite_Table).l,a0
